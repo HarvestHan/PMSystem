@@ -1,0 +1,73 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Pages\UserManagement\**" />
+    <Compile Remove="Services\DivisionPrimaryIndicatorService\**" />
+    <Content Remove="Pages\UserManagement\**" />
+    <Content Remove="Services\DivisionPrimaryIndicatorService\**" />
+    <EmbeddedResource Remove="Pages\UserManagement\**" />
+    <EmbeddedResource Remove="Services\DivisionPrimaryIndicatorService\**" />
+    <None Remove="Pages\UserManagement\**" />
+    <None Remove="Services\DivisionPrimaryIndicatorService\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="favicon.ico" />
+  </ItemGroup>
+
+  <!--<ItemGroup>
+    <Content Remove="wwwroot\favicon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="favicon.ico" />
+  </ItemGroup>-->
+
+  <!--<ItemGroup>
+    <Content Include="favicon.ico">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>-->
+
+  <ItemGroup>
+    <None Include="Pages\TestPage.razor" />
+    <None Include="Pages\UserDemo.razor" />
+    <None Include="Shared\NavMenu.razor" />
+    <None Include="Shared\SurveyPrompt.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="12.0.1" />
+    <PackageReference Include="Blazored.LocalStorage" Version="4.3.0" />
+    <PackageReference Include="Blazorise.Bootstrap" Version="1.2.0" />
+    <PackageReference Include="BootstrapBlazor" Version="7.3.0" />
+    <PackageReference Include="BootstrapBlazor.FileViewer" Version="7.0.1" />
+    <PackageReference Include="BootstrapBlazor.PdfReader" Version="7.1.8" />
+    <PackageReference Include="BootstrapBlazor.SummerNote" Version="7.0.0" />
+    <PackageReference Include="CodeBeam.MudExtensions" Version="6.2.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="6.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="6.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="6.0.10" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.10" />
+    <PackageReference Include="MudBlazor" Version="6.1.9" />
+    <PackageReference Include="MudBlazor.Extensions" Version="1.7.32" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\PMSystem.Shared.csproj" />
+    <ProjectReference Include="..\MudBlazor.ThemeManager\MudBlazor.ThemeManager.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\" />
+  </ItemGroup>
+
+</Project>

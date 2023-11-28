@@ -1,0 +1,198 @@
+﻿@page "/"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Http;
+@using MudExtensions
+@using Newtonsoft.Json;
+@using Nextended.Blazor.Models
+@using PMSystem.Client.Dialogs;
+@using PMSystem.Client.Util;
+@using PMSystem.Shared;
+@inject ISnackbar SnackBar
+@inject NavigationManager NavigationManager
+@inject IStorageInfoService StorageInfoService
+@inject IWarehouseService WarehouseService
+@inject IAuthService AuthService
+@inject ILocalStorageService LocalStorageService
+@inject IDialogService DialogService
+
+<PageTitle>首页</PageTitle>
+<MudCard Elevation="0">
+    <MudCardHeader Class="justify-center">
+        <MudChip Color="Color.Info" Size="Size.Large">欢迎使用汽车零件仓储管理信息系统</MudChip>
+    </MudCardHeader>
+<MudDivider />
+    <MudCardContent style="opacity:0.8">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="12" md="6">
+                <MudGrid Class="d-flex flex-column" Spacing="2"> 
+                    <MudItem xs="12" sm="12" md="12">
+                        <MudPaper Elevation="2" Class="d-flex flex-row pl-4 align-center" Style="height:100px;">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountBox" Color="Color.Primary" Size="Size.Large" class="mr-4"></MudIcon>
+                            <div>
+                                <MudText Typo="Typo.h6">您好！@User.user_name</MudText>
+                            </div>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="12" md="12">
+                        <MudPaper Elevation="2" Class="d-flex flex-row pl-4 align-center" Style="height:100px;">
+                            <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Secondary" Size="Size.Large" class="mr-4"></MudIcon>
+                            <div>
+                                <MudText Typo="Typo.h6">登录信息</MudText>
+                                <MudDivider Vertical="true"/>
+                                <MudText Typo="Typo.body1">登录IP:@LoginInfo.IP</MudText>
+                                <MudText Typo="Typo.body1">登陆时间:@LoginInfo.LoginTime</MudText>
+                            </div>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudItem>
+            <MudItem xs="12" sm="12" md="6">
+                <MudPaper Elevation="2" Class="d-flex flex-row pl-4 align-center " Style="height:100%">
+                    <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Color="Color.Info" Size="Size.Large" class="mr-4"></MudIcon>
+                    <div>
+                        <BootstrapBlazor.Components.Calendar ViewMode="BootstrapBlazor.Components.CalendarViewMode.Week" 
+                        ></BootstrapBlazor.Components.Calendar>
+                        <MudExtensions.MudWatch ShowMillisecond="false" Color="Color.Primary"></MudExtensions.MudWatch>
+                    </div>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="12" md="6" lg="6">
+                <MudPaper Elevation="2" Class="d-flex align-content-center justify-center flex-wrap flex-grow-1 gap-4" Style="min-height: 400px;height:100%;">
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudChart ChartType="ChartType.Pie" InputData="@StorageData1.Datas.ToArray()" InputLabels="@StorageData1.Labels.ToArray()" Width="250px" Height="250px" />
+                            <MudText Typo="Typo.subtitle2" Align="Align.Center">东大区仓</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudChart ChartType="ChartType.Pie" InputData="@StorageData2.Datas.ToArray()" InputLabels="@StorageData2.Labels.ToArray()" Width="250px" Height="250px" />
+                            <MudText Typo="Typo.subtitle2" Align="Align.Center">北中区仓</MudText>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="12" md="6" lg="6">
+                <MudPaper Elevation="2" Class="align-center border-l-8 border-solid mud-border-primary" Style="min-height: 400px;height:100%;">
+                    <div>
+                        <MudChart ChartType="ChartType.Line" ChartSeries="@SeriesLine" @bind-SelectedIndex="Index" XAxisLabels="@XAxisLabels" Width="100%" Height="350px" ChartOptions="chartOptions"></MudChart>
+                    </div>
+                </MudPaper>
+            </MudItem>
+    </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+@code
+{
+    public string Value { get; set; }
+    System.Timers.Timer timer = new System.Timers.Timer(1000);
+    private int Index = -1; //default value cannot be 0 -> first selectedindex is 0.
+    int dataSize = 4;
+    Random random = new Random();
+    double[] data = { 3599,2000 };
+    string[] labels1 = { "1号仓库月入库量", "1号仓库月出库量" };
+    string[] labels2 = { "2号仓库月入库量", "2号仓库月出库量" };
+    string[] Labels1;
+    double[] Datas1;
+    public ChartOptions chartOptions = new ChartOptions();
+
+    public class ChartData
+    {
+        public List<double> Datas { get; set; }
+        public List<string> Labels { get; set; }
+        public ChartData()
+        {
+            Datas = new List<double>();
+            Labels = new List<string>();
+        }
+    }
+
+    //public List<ChartSeries> Series = new List<ChartSeries>()
+    //{
+    //    new ChartSeries() { Name = "日出库量", Data = new double[] { 90, 79, 72, 69, 62, 62, 55, 65, 70 } },
+    //    new ChartSeries() { Name = "日入库量", Data = new double[] { 10, 41, 35, 51, 49, 62, 69, 91, 148 } },
+    //};
+    //public string[] XAxisLabels = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep" };
+
+    public List<ChartSeries> SeriesLine = new List<ChartSeries>()
+    {
+        new ChartSeries() { Name = "日入库量", Data = new double[] { 2000, 2100, 2220, 2900, 3300, 2200, 2500, 2600 } },
+        new ChartSeries() { Name = "日出库量", Data = new double[] { 1200, 1000, 1200, 2200, 1650, 2380, 2300, 2300 } },
+    };
+    public string[] XAxisLabels = { "5.1", "5.2", "5.3", "5.4", "5.5", "5.6", "5.7", "5.8" };
+
+    [CascadingParameter]
+    public LoginInfoModel LoginInfo { get; set; }
+    [CascadingParameter]
+    public UserModel User { get; set; }
+
+    public ChartData StorageData1 { get; set; }
+    public ChartData StorageData2 { get; set; }
+
+    [CascadingParameter]
+    public ClaimsPrincipal CurrentUser { get; set; }
+
+    [Parameter]
+    public List<WarehouseModel> Warehouses { get; set; }
+    public List<StorageInfoModel> StorageInfos { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetAll();
+        GetData();
+        LoginInfo = await LocalStorageService.GetItemAsync<LoginInfoModel>("loginInfo");
+        StateHasChanged();
+
+    }
+
+    void OnClick()
+    {
+        SnackBar.Add("Hello,World!!!", Severity.Info);
+        SnackBar.Add(CurrentUser.Identity.Name, Severity.Info);
+    }
+
+    async Task GetAll()
+    {
+        await GetWarehouses();
+        await GetStorageInfos();
+    }
+
+    async Task GetWarehouses()
+    {
+        var result = await WarehouseService.GetWarehouses();
+        if (result.Success)
+        {
+            Warehouses = result.Data;
+        }
+        StateHasChanged();
+    }
+
+    async Task GetStorageInfos()
+    {
+        var result = await StorageInfoService.GetStorageInfos();
+        if (result.Success)
+        {
+            StorageInfos = result.Data;
+        }
+    }
+
+    void GetData()
+    {
+        StorageData1 = new ChartData();
+        StorageData2 = new ChartData();
+        var list1 = StorageInfos.Where(it => it.warehouse_.warehouse_name == "东大区仓").ToList();
+        var list2 = StorageInfos.Where(it => it.warehouse_.warehouse_name == "北中区仓").ToList();
+        foreach (var item in list1)
+        {
+            StorageData1.Labels.Add(item.parts_.parts_name);
+            StorageData1.Datas.Add((double)item.count);
+        }
+        foreach (var item in list2)
+        {
+            StorageData2.Labels.Add(item.parts_.parts_name);
+            StorageData2.Datas.Add((double)item.count);
+        }
+    }
+
+}

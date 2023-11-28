@@ -1,0 +1,172 @@
+﻿@page "/storageinfomanagement"
+@using PMSystem.Shared
+@inject IMapper Mapper
+@inject IStorageInfoService StorageInfoService
+@inject IUserService UserService
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject ISnackbar SnackBar
+
+<style>
+    .selected {
+        background-color: #1E88E5 !important;
+    }
+
+        .selected > td {
+            color: white !important;
+        }
+
+            .selected > td .mud-input {
+                color: white !important;
+            }
+</style>
+<PageTitle>库内管理</PageTitle>
+
+<MudCard>
+    <MudCardHeader>
+        <MudGrid Class="align-center">
+            <MudItem lg="6" sm="12" Class="align-center">
+                <MudStack Row="true" Class="align-center">
+                    <MudText Typo="Typo.h6">库内管理</MudText>
+                    @if (User.Roles.Where(r => r.id == 4).ToList().Count != 0 || User.Roles.Where(r => r.id == 2).ToList().Count != 0)
+                    {
+                        <MudButton Target="_blank" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.MoveUp" Color="Color.Info" OnClick="TransferManagement">调拨管理</MudButton>
+                    }
+                </MudStack>
+
+            </MudItem>
+            <MudItem lg="6" sm="12" Class="align-center">
+               <MudTextField T="string" Label="请输入您想搜索的内容" Variant="Variant.Outlined" Clearable="true" 
+                            AdornmentIcon="@Icons.Filled.Search" Adornment="Adornment.End"
+                            @bind-Text="searchText"/>
+            </MudItem>
+        </MudGrid>       
+    </MudCardHeader>
+
+
+    <MudCardContent>
+        @if (StorageInfoModels is null || StorageInfoModels.Count <= 0)
+        {
+            <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Center">
+                当前库内存储零件信息为空！
+            </MudAlert>
+        }
+        else
+        {
+        <MudTable @ref="_table" T="StorageInfoModel" Items="@StorageInfoModels" Hover="true" Bordered="true" FixedHeader="true"
+          SortLabel="Sort By" Filter="FilterStorageInfo" Breakpoint="Breakpoint.Sm" RowsPerPage="10" LoadingProgressColor="Color.Info"
+          Virtualize="true" GroupBy="@_groupDefinition" GroupHeaderStyle="background-color:var(--mud-palette-background-grey)" GroupFooterClass="mb-4"
+          RowClassFunc="@SelectedRowClassFunc" OnRowClick="RowClickEvent">
+            <ColGroup>
+                <col style="width: 60px;" />
+                <col />
+                <col />
+                <col />
+            </ColGroup>
+            <HeaderContent>
+                <MudTh>零件编码</MudTh>
+                <MudTh>零件名称</MudTh>
+                <MudTh>存储数量</MudTh>
+            </HeaderContent>
+            <GroupHeaderTemplate>
+                <MudTh Class="mud-table-cell-custom-group" colspan="3">@($"{context.GroupName}: {context.Key}")</MudTh>
+            </GroupHeaderTemplate>
+            <RowTemplate>
+                <MudTd DataLabel="Pcode">@context.parts_.parts_code</MudTd>
+                <MudTd DataLabel="parts_name">@context.parts_.parts_name</MudTd>
+                <MudTd DataLabel="Quantity">@context.count</MudTd>
+            </RowTemplate>
+            <GroupFooterTemplate>
+                    <MudTh Style="text-align: right" Class="mud-table-cell-custom-group mud-table-cell-custom-group-footer" colspan="3"><b>总零件数量： @context.Items.Sum((e) => e.count)</b></MudTh>
+            </GroupFooterTemplate>
+        </MudTable>
+        }
+
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private bool isEmpty = false;
+    private bool isLoading = true;
+    private List<string> clickedEvents = new();
+    private int selectedRowNumber = -1;
+    private string infoFormat = "{first_item}-{last_item} of {all_items}";
+    public string searchText { get; set; }
+    private MudTable<StorageInfoModel> _table;
+    private TableGroupDefinition<StorageInfoModel> _groupDefinition = new()
+        {
+            GroupName = "按仓库分组",
+            Indentation = false,
+            Expandable = true,
+            IsInitiallyExpanded = false,
+            Selector = (e) => e.warehouse_.warehouse_name
+        };
+
+    [CascadingParameter]
+    public UserModel User { get; set; }
+
+    private List<StorageInfoModel> StorageInfoModels { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        StorageInfoModels = new List<StorageInfoModel>();
+        await GetStorageInfos();
+    }
+
+    async Task GetStorageInfos()
+    {
+        var result = await StorageInfoService.GetStorageInfos();
+        if (result.Success)
+        {
+            StorageInfoModels = result.Data;
+        }
+    }
+
+    private void TransferManagement()
+    {
+        NavigationManager.NavigateTo("/transfermanagement");
+    }
+
+    bool FilterStorageInfo(StorageInfoModel storageInfoModel)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+            return true;
+        if (storageInfoModel.warehouse_.warehouse_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (storageInfoModel.parts_.parts_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (storageInfoModel.parts_.parts_code.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    private void PageChanged(int i)
+    {
+        _table.NavigateTo(i - 1);
+    }
+
+    private void RowClickEvent(TableRowClickEventArgs<StorageInfoModel> tableRowClickEventArgs)
+    {
+        clickedEvents.Add("Row has been clicked");
+    }
+
+    private string SelectedRowClassFunc(StorageInfoModel storageInfoModel, int rowNumber)
+    {
+        if (selectedRowNumber == rowNumber)
+        {
+            selectedRowNumber = -1;
+            clickedEvents.Add("Selected Row: None");
+            return string.Empty;
+        }
+        else if (_table.SelectedItem != null && _table.SelectedItem.Equals(storageInfoModel))
+        {
+            selectedRowNumber = rowNumber;
+            clickedEvents.Add($"Selected Row: {rowNumber}");
+            return "selected";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+}

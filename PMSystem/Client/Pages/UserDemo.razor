@@ -1,0 +1,56 @@
+﻿@page "/userdemo"
+
+@using PMSystem.Client.Services.UserService
+@inject IUserService UserService
+
+<MudTabs Elevation="4" Rounded="true" AlwaysShowScrollButtons="true" Color="@Color.Info" Class="mt-4">
+
+    <MudTabPanel Text="2">
+        <MudTable Items="@users" Dense="true" Hover="true" Bordered="true">
+            <ToolBarContent> 
+                <MudText Typo="Typo.h6">Weather</MudText>
+                <MudButtonGroup Color="Color.Primary" Variant="Variant.Filled" class="ml-4">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary">添加</MudButton>
+                </MudButtonGroup>
+
+                <MudSpacer />
+                <MudTextField T="string" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              AdornmentIcon="@Icons.Filled.Search" Adornment="Adornment.End"/>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>编号</MudTh>
+                <MudTh>姓名</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Date">@context.id</MudTd>
+                <MudTd DataLabel="TempC">@context.user_name</MudTd>
+
+                <MudTd DataLabel="Operate">
+                    <MudStack AlignItems="AlignItems.Center" Row="true">
+                        <MudButton Variant="Variant.Filled"  Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="@Size.Medium">编辑</MudButton>
+                        <MudButton Variant="Variant.Filled"  Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="@Size.Medium">删除</MudButton>
+                    </MudStack>
+
+                </MudTd>
+            </RowTemplate>
+
+        </MudTable>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private List<UserModel> users = new List<UserModel>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await UserService.GetUsers();
+        if (result.Success)
+        {
+            users = result.Data;
+        }
+        else
+
+        { 
+        }
+    }
+}

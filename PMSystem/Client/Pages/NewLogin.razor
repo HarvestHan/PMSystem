@@ -1,0 +1,197 @@
+﻿@page "/login"
+
+@using Microsoft.AspNetCore.Authorization;
+@using System.Security.Claims;
+@using PMSystem.Client.Dialogs;
+@using System.Diagnostics.CodeAnalysis;
+@inject ISnackbar Snackbar
+@inject IAuthService AuthService
+@inject IDialogService DialogService
+@inject ILocalStorageService LocalStorageService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@layout MainLayout
+@attribute [AllowAnonymous]
+
+<MudOverlay DarkBackground="true" Visible="@CaptchaVisible">
+    <BootstrapBlazor.Components.Captcha ImagesPath="@ImagesPath" ImagesName="@ImagesName" OnValid="@OnValid" @ref="Captcha" />
+</MudOverlay>
+
+<EditForm Model="@loginModel" OnValidSubmit="OnValidSubmit">
+    <MudGrid Spacing=1>
+        <MudItem xs="12">
+            <div class="d-flex justify-center">
+                @* <MudIcon Icon="" Color="Color.Primary" Size="Size.Large" ViewBox="0 0 500 500" Style="width: 100px; height: 100px;" />*@
+                @*<MudImage Src="../resources/Icon.jpg" Height="80" Width="80" Style="border-radius: 40px;" />*@
+            </div>
+        </MudItem>
+        <DataAnnotationsValidator />
+        <MudItem xs="12">
+            <div class="d-flex justify-center">
+                <MudText Typo="Typo.h4" Style="color:black">汽车零件仓储管理信息系统</MudText>
+            </div>
+        </MudItem>
+        <MudItem xs="12">
+            <div class="d-flex justify-center">
+                <MudText Typo="Typo.h6" Style="color:black">Auto Parts Warehouse Management System</MudText>
+            </div>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudTextField T="string" Label="用户名" Variant="Variant.Outlined"
+                          @bind-Value="loginModel.UserName"
+                          ErrorText="用户名不能为空!" Required="true" RequiredError="用户名不能为空!" Style="border:2px solid black;border-radius:10px" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField Label="密码" Variant="Variant.Outlined"
+                          @bind-Value="loginModel.PassWord"
+                          InputType="@_passwordInput" Adornment="Adornment.End" AdornmentIcon="@_passwordInputIcon" OnAdornmentClick="TogglePasswordVisibility" Required="true"
+                          ErrorText="密码不能为空!" RequiredError="密码不能为空!" Style="border:2px solid black;border-radius: 5px;" />
+        </MudItem>
+
+        <MudItem xs="12" Class="d-flex justify-center">
+            <MudButton Disabled="@_processing" ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="width: 100%; height:45px;">
+                @if (_processing)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">登录中</MudText>
+                }
+                else
+                {
+                    <MudText Style="border-radius: 10px;">登录</MudText>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</EditForm>
+
+
+@code
+{
+    public string ImagesPath { get; set; } = "../resources/captcha";
+    public string ImagesName { get; set; } = "Pic.jpg";
+    private string VertifyCode { get; set; }
+    private string VertifyURL { get; set; }
+    private bool _processing = false;
+    [CascadingParameter]
+    public ClaimsPrincipal CurrentUser { get; set; }
+
+    private bool _passwordVisibility;
+    private InputType _passwordInput = InputType.Password;
+    private string _passwordInputIcon = Icons.Material.Filled.VisibilityOff;
+
+    void TogglePasswordVisibility()
+    {
+        if (_passwordVisibility)
+        {
+            _passwordVisibility = false;
+            _passwordInputIcon = Icons.Material.Filled.VisibilityOff;
+            _passwordInput = InputType.Password;
+        }
+        else
+        {
+            _passwordVisibility = true;
+            _passwordInputIcon = Icons.Material.Filled.Visibility;
+            _passwordInput = InputType.Text;
+        }
+    }
+
+    //登录
+    LoginModel loginModel = new LoginModel();
+    [Parameter]
+    public Action LoginSuccessEvent { get; set; }
+
+
+    async Task OnValidSubmit(EditContext context)
+    {
+
+        CaptchaVisible = true;
+
+    }
+
+    private void GetVertifyCode()
+    {
+        Random random = new Random();
+        VertifyCode = random.Next(1000, 10000).ToString();
+        VertifyURL = $"http://ovooa.org/API/yzmt/api.php?msg={VertifyCode}";
+        StateHasChanged();
+    }
+    int MaxLoginCount = 10;
+    [NotNull]
+    private BootstrapBlazor.Components.Captcha? Captcha { get; set; }
+    private bool CaptchaVisible { get; set; } = false;
+    private async void OnValid(bool ret)
+    {
+        var result = ret ? "成功" : "失败";
+
+        if (ret)
+        {
+            await Task.Delay(1000);
+            CaptchaVisible = false;
+            _processing = true;
+            StateHasChanged();
+            Task.Run(async () =>
+            {
+                LoginTimeModel loginTime = await LocalStorageService.GetItemAsync<LoginTimeModel>("LoginTime") ?? new LoginTimeModel();
+                if (loginTime is not null && loginTime.CanLoginTime != null && DateTime.Now < loginTime.CanLoginTime)
+                {
+                    Snackbar.Add($"登录被锁定,请稍后再试!", Severity.Error);
+                    _processing = false;
+                    StateHasChanged();
+                    return;
+                }
+                var result = await AuthService.Login(loginModel);
+                if (result.Success)
+                {
+                    //本地存储中加入"ahthToken"
+                    await LocalStorageService.SetItemAsync("authToken", result.Data);
+                    //获取身份认证状态
+                    var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                    if (state.User.Identity.IsAuthenticated)
+                    {
+                        CurrentUser = state.User;
+                    }
+                    LoginSuccessEvent?.Invoke();
+                }
+                else
+                {
+
+                    loginTime = await LocalStorageService.GetItemAsync<LoginTimeModel>("LoginTime") ?? new LoginTimeModel();
+
+                    if (loginTime.CanLoginTime != null && DateTime.Now >= loginTime.CanLoginTime)
+                    {
+                        loginTime.Count = 0;
+
+                    }
+                    loginTime.Count++;
+                    if (loginTime.Count == MaxLoginCount)
+                    {
+                        loginTime.CanLoginTime = DateTime.Now.AddHours(1);
+                    }
+
+                    LocalStorageService.SetItemAsync("LoginTime", loginTime);
+
+                    if (loginTime.Count < 10)
+                    {
+                        Snackbar.Add($"登录失败,用户名或密码错误！", Severity.Error);
+                    }
+                    if (loginTime.Count == 10)
+                    {
+                        Snackbar.Add($"登录被锁定，请稍后再试！", Severity.Error);
+                    }
+
+                }
+                _processing = false;
+                StateHasChanged();
+            });
+        }
+        else
+        {
+            Task.Run(async () =>
+            {
+                await Task.Delay(1000);
+                StateHasChanged();
+            });
+        }
+    }
+}

@@ -1,0 +1,73 @@
+﻿<h3>template</h3>
+@*<HeaderContent>
+    <MudTh><MudTableSortLabel SortBy="new Func<InboundListModel, object>(x=>x.id)">序号</MudTableSortLabel></MudTh>
+    <MudTh>入库单编号</MudTh>
+    <MudTh>入库日期</MudTh>
+    <MudTh>仓库名称</MudTh>
+    <MudTh>零件名称</MudTh>
+    <MudTh>入库数量</MudTh>
+    <MudTh>处理人</MudTh>
+    <MudTh>备注</MudTh>
+    <MudTh>审核意见</MudTh>
+    <MudTh>入库状态</MudTh>
+    <MudTh>操作</MudTh>
+</HeaderContent>
+<RowTemplate>
+    <MudTd DataLabel="id">@context.id</MudTd>
+    <MudTd DataLabel="inbound_code">@context.inbound_code</MudTd>
+    <MudTd DataLabel="inbound_date">@context.inbound_date</MudTd>
+    <MudTd DataLabel="warehouse_">@context.warehouse_</MudTd>
+    <MudTd DataLabel="parts_">@context.parts_</MudTd>
+    <MudTd DataLabel="count">@context.count</MudTd>
+    <MudTd DataLabel="handle_">@context.handle_</MudTd>
+    <MudTd DataLabel="remark">@context.remark</MudTd>
+    @if(context.inbound_state == PMSystem.Shared.Enums.InboundState.待审核)
+    {
+        <MudTd DataLabel="suggestion">审核中</MudTd>
+    }
+    else
+    {
+        <MudTd DataLabel="suggestion">@context.suggestion</MudTd>
+    }
+    @if(context.inbound_state == PMSystem.Shared.Enums.InboundState.待审核)
+    {
+        <MudTd DataLabel="inbound_state"><MudChip Text="blue" Variant="Variant.Filled" Color="Color.Info">待审核</MudChip></MudTd>
+    }
+    else if(context.inbound_state == PMSystem.Shared.Enums.InboundState.待修改)
+    {
+        <MudTd DataLabel="inbound_state"><MudChip Text="red" Variant="Variant.Filled" Color="Color.Error">待修改</MudChip></MudTd>
+    }
+    else if(context.inbound_state == PMSystem.Shared.Enums.InboundState.待入库)
+    {
+        <MudTd DataLabel="inbound_state"><MudChip Text="orange" Variant="Variant.Filled" Color="Color.Warning">待入库</MudChip></MudTd>
+    }
+    else
+    {
+        <MudTd DataLabel="inbound_state"><MudChip Text="green" Variant="Variant.Filled" Color="Color.Success">已入库</MudChip></MudTd>
+    }
+    <MudTd DataLabel="Operate">
+        <MudStack AlignItems="AlignItems.Center" Row="true">
+        @if ((User.Roles.Where(r => r.id == 2).ToList().Count != 0) && (context.inbound_state == PMSystem.Shared.Enums.InboundState.待审核))
+        {
+            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Edit(context);})" Icon="@Icons.Material.Filled.Edit" Color="Color.Success" Size="@Size.Medium">审核</MudButton>
+        }
+        @if ((User.Roles.Where(r => r.id == 3).ToList().Count != 0) && (context.inbound_state == PMSystem.Shared.Enums.InboundState.待修改))
+        {
+            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Edit(context);})" Icon="@Icons.Material.Filled.Edit" Color="Color.Error" Size="@Size.Medium">修改</MudButton>
+        }
+        @if (User.Roles.Where(r => r.id == 1).ToList().Count != 0) 
+        {
+            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Delete(context);})" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="@Size.Medium">删除</MudButton>
+        }
+        @if ((User.Roles.Where(r => r.id == 4).ToList().Count != 0) && (context.inbound_state == PMSystem.Shared.Enums.InboundState.待入库))
+        {
+            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Inbound(context);})" Icon="@Icons.Material.Filled.Delete" Color="Color.Secondary" Size="@Size.Medium">入库</MudButton>
+        }
+        </MudStack>
+    </MudTd>  
+</RowTemplate>*@
+@code{
+
+}
+
+

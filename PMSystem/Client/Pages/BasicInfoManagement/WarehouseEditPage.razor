@@ -1,0 +1,101 @@
+﻿@using PMSystem.Client.Dialogs;
+@using System.ComponentModel.DataAnnotations
+@using PMSystem.Shared
+
+@inject IDialogService DialogService
+@inject IUserService UserService
+@inject IWarehouseService WarehouseService
+@inject ISnackbar Snackbar
+
+<EditForm Model="@WarehouseModel" OnValidSubmit="OnValidSubmit">
+    <DataAnnotationsValidator />
+    <MudGrid>
+        <MudItem xs="12" sm="12">
+            <MudCard>
+                <MudCardContent>
+                    <MudGrid>
+                        <MudItem lg="6" md="6" sm="12">
+                            <MudTextField T="string" Label="仓库编码" Class="mt-3" Required="true" RequiredError="仓库编码不能为空！" Variant="Variant.Outlined"
+                                          @bind-Value="@WarehouseModel.warehouse_code" />
+                        </MudItem>
+                        <MudItem lg="6" md="6" sm="12">
+                            <MudTextField T="string" Label="仓库名称" Class="mt-3" Required="true" RequiredError="仓库编码不能为空！" Variant="Variant.Outlined"
+                                          @bind-Value="@WarehouseModel.warehouse_name" />
+                        </MudItem>
+                        <MudItem lg="12" md="12" sm="12">
+                            <MudSelect Label="仓库负责人" Class="mt-3" Required="true" RequiredError="仓库负责人不能为空！" Variant="Variant.Outlined"
+                                          @bind-Value="@WarehouseModel.principal_" >
+                                @foreach(var item in Users)
+                                {
+                                    <MudSelectItem T="UserModel" Value="item" />
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem lg="12" md="12" sm="12">
+                            <MudDatePicker T="DateTime" Label="建库日期" Class="mt-3"  Required="true" RequiredError="建库日期不能为空！" Disabled="true" Variant="Variant.Outlined"
+                                           @bind-Date="@WarehouseModel.construct_date"/>
+                        </MudItem>
+                        <MudItem lg="12" md="12" sm="12">
+                            <MudTextField T="string" Label="备注" Class="mt-3" Lines="2" Variant="Variant.Outlined"
+                                          @bind-Value="@WarehouseModel.remark" />
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="OkClick" Class="ml-auto">保存</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="CancelClick" Class="ml-auto">取消</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</EditForm>
+
+@code {
+    bool success;
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public WarehouseModel WarehouseModel{ get; set; }
+    public List<UserModel> Users { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (WarehouseModel is null)
+            WarehouseModel = new WarehouseModel();
+
+        await GetAll();
+        StateHasChanged();
+    }
+
+    private void OnValidSubmit(EditContext context)
+    {
+        success = true;
+        StateHasChanged();
+    }
+    async Task GetAll()
+    {
+        await GetUsers();
+        StateHasChanged();
+    }
+
+    async Task GetUsers()
+    {
+        var result = await UserService.GetUsers();
+        if (result.Success)
+        {
+            Users = result.Data;
+        }
+        StateHasChanged();
+    }
+
+
+    void OkClick()
+    {
+        MudDialog.Close(DialogResult.Ok(WarehouseModel));
+    }
+
+    void CancelClick()
+    {
+        MudDialog.Cancel();
+    }
+}

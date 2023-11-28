@@ -1,0 +1,301 @@
+﻿@page "/checklistmanagement"
+@using PMSystem.Shared
+@inject IMapper Mapper
+@inject ICheckListService CheckListService
+@inject IUserService UserService
+@inject IStorageInfoService StorageInfoService
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject ISnackbar SnackBar
+
+<style>
+    .selected {
+        background-color: #1E88E5 !important;
+    }
+
+        .selected > td {
+            color: white !important;
+        }
+
+            .selected > td .mud-input {
+                color: white !important;
+            }
+</style>
+<PageTitle>盘点管理</PageTitle>
+
+<MudCard>
+    <MudCardHeader>
+        <MudGrid Class="align-center">
+            <MudItem lg="6" sm="12" Class="align-center">
+                <MudStack Row="true" Class="align-center">
+                    <MudText Typo="Typo.h6">盘点管理</MudText>
+                    @if (User.Roles.Where(r => r.id == 4).ToList().Count != 0)
+                    {
+                        <MudButton Target="_blank" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Build" Color="Color.Info" OnClick="New">新增盘点</MudButton>
+                    }
+                    @if (User.Roles.Where(r => r.id == 1).ToList().Count != 0 || User.Roles.Where(r => r.id == 2).ToList().Count != 0)
+                    {
+                        <MudButton Target="_blank" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Warning" Color="Color.Error" OnClick="WarningList">盘点异常查询</MudButton>
+                    }
+                </MudStack>
+
+            </MudItem>
+            <MudItem lg="6" sm="12" Class="align-center">
+               <MudTextField T="string" Label="请输入您想搜索的内容" Variant="Variant.Outlined" Clearable="true" 
+                            AdornmentIcon="@Icons.Filled.Search" Adornment="Adornment.End"
+                            @bind-Text="searchText"/>
+            </MudItem>
+        </MudGrid>       
+    </MudCardHeader>
+
+
+    <MudCardContent>
+        @if (CheckListModels is null || CheckListModels.Count <= 0)
+        {
+            <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Center">
+                当前盘点任务记录为空！
+            </MudAlert>
+        }
+        else
+        {
+        <MudTable @ref="_table" T="CheckListModel" Items="@CheckListModels" Hover="true"
+          SortLabel="Sort By" Filter="FilterCheckList" Breakpoint="Breakpoint.Sm" RowsPerPage="10" LoadingProgressColor="Color.Info"
+          Virtualize="true" RowClassFunc="@SelectedRowClassFunc" OnRowClick="RowClickEvent">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<CheckListModel, object>(x=>x.id)">序号</MudTableSortLabel></MudTh>
+                <MudTh>盘点单编号</MudTh>
+                <MudTh>盘点日期</MudTh>
+                <MudTh>仓库名称</MudTh>
+                <MudTh>零件名称</MudTh>
+                <MudTh>记录数量</MudTh>
+                <MudTh>盘点数量</MudTh>
+                <MudTh>处理人</MudTh>
+                <MudTh>备注</MudTh>
+                <MudTh>审核意见</MudTh>
+                <MudTh>状态</MudTh>
+                <MudTh>操作</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="id">@context.id</MudTd>
+                <MudTd DataLabel="check_code">@context.check_code</MudTd>
+                <MudTd DataLabel="check_date">@context.check_date</MudTd>
+                <MudTd DataLabel="warehouse_">@context.warehouse_</MudTd>
+                <MudTd DataLabel="parts_">@context.parts_</MudTd>
+                <MudTd DataLabel="storage_count">@context.storage_count</MudTd>
+                <MudTd DataLabel="check_count">@context.check_count</MudTd>
+                <MudTd DataLabel="handle_">@context.handle_</MudTd>
+                <MudTd DataLabel="remark">@context.remark</MudTd>
+                @if(context.check_state == PMSystem.Shared.Enums.CheckState.待审核)
+                {
+                    <MudTd DataLabel="suggestion">审核中</MudTd>
+                }
+                else
+                {
+                    <MudTd DataLabel="suggestion">@context.suggestion</MudTd>
+                }
+                @if(context.check_state == PMSystem.Shared.Enums.CheckState.待审核)
+                {
+                    <MudTd DataLabel="check_state"><MudChip Text="blue" Variant="Variant.Filled" Color="Color.Info">待审核</MudChip></MudTd>
+                }
+                else if(context.check_state == PMSystem.Shared.Enums.CheckState.待修改)
+                {
+                    <MudTd DataLabel="check_state"><MudChip Text="red" Variant="Variant.Filled" Color="Color.Error">待修改</MudChip></MudTd>
+                }
+                else if(context.check_state == PMSystem.Shared.Enums.CheckState.待盘点)
+                {
+                    <MudTd DataLabel="check_state"><MudChip Text="orange" Variant="Variant.Filled" Color="Color.Warning">待盘点</MudChip></MudTd>
+                }
+                else
+                {
+                    <MudTd DataLabel="check_state"><MudChip Text="green" Variant="Variant.Filled" Color="Color.Success">已完成</MudChip></MudTd>
+                }
+                <MudTd DataLabel="Operate">
+                    <MudStack AlignItems="AlignItems.Center" Row="true">
+                        @if ((User.Roles.Where(r => r.id == 2).ToList().Count != 0) && (context.check_state == PMSystem.Shared.Enums.CheckState.待审核))
+                        {
+                            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Edit(context);})" Icon="@Icons.Material.Filled.Edit" Color="Color.Success" Size="@Size.Medium">审核</MudButton>
+                        }
+                        @if ((User.Roles.Where(r => r.id == 4).ToList().Count != 0) && (context.check_state == PMSystem.Shared.Enums.CheckState.待修改))
+                        {
+                            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Edit(context);})" Icon="@Icons.Material.Filled.Edit" Color="Color.Error" Size="@Size.Medium">修改</MudButton>
+                        }
+                        @if (User.Roles.Where(r => r.id == 1).ToList().Count != 0) 
+                        {
+                            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Delete(context);})" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="@Size.Medium">删除</MudButton>
+                        }
+                        @if ((User.Roles.Where(r => r.id == 4).ToList().Count != 0) && (context.check_state == PMSystem.Shared.Enums.CheckState.待盘点))
+                        {
+                            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Check(context);})" Icon="@Icons.Material.Filled.Delete" Color="Color.Secondary" Size="@Size.Medium">完成</MudButton>
+                        }
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+
+            <PagerContent>
+                <div class="d-flex flex-column align-center">
+                    <MudPagination SelectedChanged="PageChanged" Count="@((_table.GetFilteredItemsCount() + _table.RowsPerPage - 1) / _table.RowsPerPage)" Class="pa-4" />
+                </div>
+            </PagerContent>
+        </MudTable>
+        }
+
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private bool isEmpty = false;
+    private bool isLoading = true;
+    private List<string> clickedEvents = new();
+    private int selectedRowNumber = -1;
+    private string infoFormat = "{first_item}-{last_item} of {all_items}";
+    public string searchText { get; set; }
+    private MudTable<CheckListModel> _table;
+    [CascadingParameter]
+    public UserModel User{ get; set; }
+
+    private List<CheckListModel> CheckListModels { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        CheckListModels = new List<CheckListModel>();
+        await GetCheckLists();
+    }
+
+    async Task GetCheckLists()
+    {
+        var result = await CheckListService.GetCheckLists();
+        if (result.Success)
+        {
+            if (User.Roles.Where(r => r.id == 1).ToList().Count != 0)
+            {
+                CheckListModels = result.Data;
+            }
+            else if (User.Roles.Where(r => r.id == 2).ToList().Count != 0)
+            {
+                CheckListModels = result.Data.Where(c => c.check_state == PMSystem.Shared.Enums.CheckState.待审核).ToList();
+            }
+            else if (User.Roles.Where(r => r.id == 4).ToList().Count != 0)
+            {
+                CheckListModels = result.Data.Where(c => c.check_state == PMSystem.Shared.Enums.CheckState.待修改 || c.check_state == PMSystem.Shared.Enums.CheckState.待审核 || c.check_state == PMSystem.Shared.Enums.CheckState.待盘点).ToList();
+            }
+        }
+    }
+
+    private async Task Edit(CheckListModel checkListModel)
+    {
+        CheckListModel model = Mapper.Map<CheckListModel>(checkListModel);
+        var parameters = new DialogParameters { ["CheckListModel"] = model };
+        var dialog = DialogService.Show<CheckListEditPage>("编辑盘点信息", parameters);
+        var result = await dialog.Result;
+        if (!result.Cancelled)
+        {
+            var response = await CheckListService.UpdateCheckList(Mapper.Map<CheckListModel, UpdateCheckListModel>(result.Data as CheckListModel));
+            if (response.Success)
+                checkListModel = result.Data as CheckListModel;
+            SnackBar.Add(response.Message, response.Success ? Severity.Success : Severity.Error);
+            await GetCheckLists();
+            StateHasChanged();
+        }
+    }
+
+    private async Task New()
+    {
+        var dialog = DialogService.Show<CheckListAddPage>("添加盘点信息");
+        var result = await dialog.Result;
+
+        CheckListModel e = result.Data as CheckListModel;
+        var storageResult = await StorageInfoService.GetStorageInfo(e.warehouse_.id, e.parts_.id);
+        int num = storageResult.Data.count;
+        e.storage_count = num;
+        if (!result.Cancelled)
+        {
+            var apiResult = await CheckListService.AddCheckList(Mapper.Map<CheckListModel, AddCheckListModel>(e));
+            if (apiResult.Success)
+            {
+                SnackBar.Add(apiResult.Message, Severity.Success);
+            }
+            else
+            {
+                SnackBar.Add(apiResult.Message, Severity.Error);
+            }
+            await GetCheckLists();
+        }
+        StateHasChanged();
+    }
+
+    private async Task WarningList()
+    {
+        NavigationManager.NavigateTo("/checkwarninglist");
+    }
+
+    public async void Delete(CheckListModel e)
+    {
+        var result = await DialogService.Show<MakeSureDialog>("确认操作").Result;
+        if (!result.Cancelled)
+        {
+            var response = await CheckListService.DeleteCheckList(e.id);
+            SnackBar.Add(response.Message, response.Success ? Severity.Success : Severity.Error);
+        }
+        await GetCheckLists();
+        StateHasChanged();
+    }
+
+    public async void Check(CheckListModel e)
+    {
+        e.check_state = PMSystem.Shared.Enums.CheckState.已完成;
+        var response = await CheckListService.UpdateCheckList(Mapper.Map<CheckListModel, UpdateCheckListModel>(e));
+        SnackBar.Add(response.Message, response.Success ? Severity.Success : Severity.Error);
+        await GetCheckLists();
+    }
+
+    bool FilterCheckList(CheckListModel checkListModel)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+            return true;
+        if (checkListModel.check_code.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (checkListModel.warehouse_.warehouse_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (checkListModel.parts_.parts_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (checkListModel.storage_count.ToString().Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (checkListModel.check_count.ToString().Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (checkListModel.handle_.user_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (checkListModel.remark.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    private void PageChanged(int i)
+    {
+        _table.NavigateTo(i - 1);
+    }
+
+    private void RowClickEvent(TableRowClickEventArgs<CheckListModel> tableRowClickEventArgs)
+    {
+        clickedEvents.Add("Row has been clicked");
+    }
+
+    private string SelectedRowClassFunc(CheckListModel checkListModel, int rowNumber)
+    {
+        if (selectedRowNumber == rowNumber)
+        {
+            selectedRowNumber = -1;
+            clickedEvents.Add("Selected Row: None");
+            return string.Empty;
+        }
+        else if (_table.SelectedItem != null && _table.SelectedItem.Equals(checkListModel))
+        {
+            selectedRowNumber = rowNumber;
+            clickedEvents.Add($"Selected Row: {rowNumber}");
+            return "selected";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+}

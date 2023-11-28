@@ -1,0 +1,219 @@
+﻿@page "/partsmanagement"
+@using PMSystem.Shared
+@inject IMapper Mapper
+@inject IPartsService PartsService
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject ISnackbar SnackBar
+
+<style>
+    .selected {
+        background-color: #1E88E5 !important;
+    }
+
+        .selected > td {
+            color: white !important;
+        }
+
+            .selected > td .mud-input {
+                color: white !important;
+            }
+</style>
+<PageTitle>零件信息管理</PageTitle>
+
+<MudCard>
+    <MudCardHeader>
+        <MudGrid Class="align-center">
+            <MudItem lg="6" sm="12" Class="align-center">
+                <MudStack Row="true" Class="align-center">
+                    <MudText Typo="Typo.h6">零件信息管理</MudText>
+                    <MudButton Target="_blank" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.MiscellaneousServices" Color="Color.Info" OnClick="New">添加零件</MudButton>
+                </MudStack>
+
+            </MudItem>
+            <MudItem lg="6" sm="12" Class="align-center">
+               <MudTextField T="string" Label="请输入您想搜索的内容" Variant="Variant.Outlined" Clearable="true" 
+                            AdornmentIcon="@Icons.Filled.Search" Adornment="Adornment.End"
+                            @bind-Text="searchText"/>
+            </MudItem>
+        </MudGrid>       
+    </MudCardHeader>
+
+
+    <MudCardContent>
+        @if (PartsModels is null || PartsModels.Count <= 0)
+        {
+            <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Center">
+                当前未录入零件信息！
+            </MudAlert>
+        }
+        else
+        {
+        <MudTable @ref="_table" T="PartsModel" Items="@PartsModels" Hover="true"
+          SortLabel="Sort By" Filter="FilterParts" Breakpoint="Breakpoint.Sm" RowsPerPage="10" LoadingProgressColor="Color.Info"
+          Virtualize="true" RowClassFunc="@SelectedRowClassFunc" OnRowClick="RowClickEvent">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<PartsModel, object>(x=>x.id)">序号</MudTableSortLabel></MudTh>
+                <MudTh>零件编号</MudTh>
+                <MudTh>零件名称</MudTh>
+                <MudTh>零件规格</MudTh>
+                <MudTh>零件颜色</MudTh>
+                <MudTh>计量单位</MudTh>
+                <MudTh>体积</MudTh>
+                <MudTh>重量</MudTh>
+                <MudTh>备注</MudTh>
+                <MudTh>操作</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="id">@context.id</MudTd>
+                <MudTd DataLabel="parts_code">@context.parts_code</MudTd>
+                <MudTd DataLabel="parts_name">@context.parts_name</MudTd>
+                <MudTd DataLabel="specification">@context.specification</MudTd>
+                <MudTd DataLabel="color">@context.color</MudTd>
+                <MudTd DataLabel="unit">@context.unit</MudTd>
+                <MudTd DataLabel="volume">@context.volume</MudTd>
+                <MudTd DataLabel="weight">@context.weight</MudTd>
+                <MudTd DataLabel="remark">@context.remark</MudTd>
+                <MudTd DataLabel="Operate">
+                    <MudStack AlignItems="AlignItems.Center" Row="true">
+                        <MudButton Variant="Variant.Filled" OnClick="@(()=>{Edit(context);})" Icon="@Icons.Material.Filled.Edit" Color="Color.Success" Size="@Size.Medium">编辑</MudButton>
+                        <MudButton Variant="Variant.Filled" OnClick="@(()=>{Delete(context);})" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="@Size.Medium">删除</MudButton>
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+
+            <PagerContent>
+                <div class="d-flex flex-column align-center">
+                    <MudPagination SelectedChanged="PageChanged" Count="@((_table.GetFilteredItemsCount() + _table.RowsPerPage - 1) / _table.RowsPerPage)" Class="pa-4" />
+                </div>
+            </PagerContent>
+        </MudTable>
+        }
+
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private bool isEmpty = false;
+    private bool isLoading = true;
+    private List<string> clickedEvents = new();
+    private int selectedRowNumber = -1;
+    private string infoFormat = "{first_item}-{last_item} of {all_items}";
+    public string searchText { get; set; }
+    private MudTable<PartsModel> _table;
+
+    private List<PartsModel> PartsModels { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        PartsModels = new List<PartsModel>();
+        await GetParts();
+    }
+
+    async Task GetParts()
+    {
+        var result = await PartsService.GetParts();
+        if (result.Success)
+        {
+            PartsModels = result.Data;
+        }
+    }
+
+    private async Task Edit(PartsModel partsModel)
+    {
+        PartsModel model = Mapper.Map<PartsModel>(partsModel);
+        var parameters = new DialogParameters { ["PartsModel"] = model };
+        var dialog = DialogService.Show<PartsEditPage>("编辑零件信息", parameters);
+        var result = await dialog.Result;
+        if (!result.Cancelled)
+        {
+            var response = await PartsService.UpdateParts(Mapper.Map<PartsModel, UpdatePartsModel>(result.Data as PartsModel));
+            if (response.Success)
+                partsModel = result.Data as PartsModel;
+            SnackBar.Add(response.Message, response.Success ? Severity.Success : Severity.Error);
+            await GetParts();
+            StateHasChanged();
+        }
+    }
+
+    private async Task New()
+    {
+        var dialog = DialogService.Show<PartsAddPage>("添加零件信息");
+        var result = await dialog.Result;
+        if (!result.Cancelled)
+        {
+            var apiResult = await PartsService.AddParts(Mapper.Map<PartsModel, AddPartsModel>(result.Data as PartsModel));
+            if (apiResult.Success)
+            {
+                SnackBar.Add(apiResult.Message, Severity.Success);
+            }
+            else
+            {
+                SnackBar.Add(apiResult.Message, Severity.Error);
+            }
+            await GetParts();
+        }
+        StateHasChanged();
+    }
+
+    public async void Delete(PartsModel e)
+    {
+        var result = await DialogService.Show<MakeSureDialog>("确认操作").Result;
+        if (!result.Cancelled)
+        {
+            var response = await PartsService.DeleteParts(e.id);
+            SnackBar.Add(response.Message, response.Success ? Severity.Success : Severity.Error);
+        }
+        await GetParts();
+        StateHasChanged();
+    }
+
+    bool FilterParts(PartsModel partsModel)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+            return true;
+        if (partsModel.parts_code.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (partsModel.parts_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (partsModel.specification.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (partsModel.color.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (partsModel.unit.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (partsModel.remark.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    private void PageChanged(int i)
+    {
+        _table.NavigateTo(i - 1);
+    }
+
+    private void RowClickEvent(TableRowClickEventArgs<PartsModel> tableRowClickEventArgs)
+    {
+        clickedEvents.Add("Row has been clicked");
+    }
+
+    private string SelectedRowClassFunc(PartsModel partsModel, int rowNumber)
+    {
+        if (selectedRowNumber == rowNumber)
+        {
+            selectedRowNumber = -1;
+            clickedEvents.Add("Selected Row: None");
+            return string.Empty;
+        }
+        else if (_table.SelectedItem != null && _table.SelectedItem.Equals(partsModel))
+        {
+            selectedRowNumber = rowNumber;
+            clickedEvents.Add($"Selected Row: {rowNumber}");
+            return "selected";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+}

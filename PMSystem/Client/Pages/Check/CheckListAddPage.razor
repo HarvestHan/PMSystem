@@ -1,0 +1,147 @@
+﻿@using PMSystem.Client.Dialogs;
+@using PMSystem.Shared
+@using System.Text.RegularExpressions
+@using System.ComponentModel.DataAnnotations
+
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ICheckListService CheckListService
+@inject IWarehouseService WarehouseService
+@inject IPartsService PartsService
+@inject IUserService UserService
+
+<MudCard>
+    <MudCardContent>
+        <EditForm @bind-Model="@CheckListModel">
+            <MudGrid Spacing="2">
+                <MudItem lg="6" md="6" sm="6">
+                    <MudTextField T="string" Label="盘点单编号"  @bind-Value="@CheckListModel.check_code" Required="true" RequiredError="盘点单编号不能为空！" 
+                    Variant="Variant.Outlined"/>
+                </MudItem>
+                <MudItem lg="6" md="6" sm="6">
+                    <MudDatePicker T="DateTime" Label="盘点日期" @bind-Date="@CheckListModel.check_date" Required="true" RequiredError="盘点日期不能为空！" Disabled="true"
+                    Variant="Variant.Outlined"/>
+                </MudItem>
+                <MudItem lg="12" md="12" sm="12">
+                    <MudSelect Label="选择仓库" @bind-Value="@CheckListModel.warehouse_" 
+							   Variant="Variant.Outlined" Required="true" RequiredError="仓库不能为空！">
+						@foreach (var item in Warehouses)
+						{
+							<MudSelectItem T="WarehouseModel" Value="item" />
+						}
+					</MudSelect>
+                </MudItem>
+                <MudItem lg="12" md="12" sm="12">
+                    <MudSelect Label="选择零件" @bind-Value="@CheckListModel.parts_" 
+							   Variant="Variant.Outlined" Required="true" RequiredError="零件不能为空！">
+						@foreach (var item in Parts)
+						{
+							<MudSelectItem T="PartsModel" Value="item" />
+						}
+					</MudSelect>
+                </MudItem>
+@*                <MudItem lg="12" md="12" sm="12">
+                    <MudNumericField Label="记录数量" Class="mt-3" @bind-Value="@CheckListModel.storage_count" Required="true" RequiredError="记录数量不能为空！"
+                                Variant="Variant.Outlined" />
+                </MudItem>*@
+                <MudItem lg="12" md="12" sm="12">
+                    <MudNumericField Label="盘点数量" Class="mt-3" @bind-Value="@CheckListModel.check_count" Required="true" RequiredError="盘点数量不能为空！"
+                                Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem lg="12" md="12" sm="12">
+					<MudSelect Label="处理人" @bind-Value="@CheckListModel.handle_" 
+							   Variant="Variant.Outlined" Required="true" RequiredError="处理人不能为空！">
+						@foreach (var item in Users)
+						{
+							<MudSelectItem T="UserModel" Value="item" />
+						}
+					</MudSelect>
+				</MudItem>
+                <MudItem lg="12" md="12" sm="12">
+                    <MudTextField T="string" Label="备注" @bind-Value="@CheckListModel.remark" Lines="2" Variant="Variant.Outlined"></MudTextField>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    </MudCardContent>
+    <MudCardActions>
+        <MudStack Row="true">
+            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="OkClick" Class="ml-auto">确定</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="CancelClick" Class="ml-auto">取消</MudButton>
+        </MudStack>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    bool success;
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] public UserModel User{ get; set; }
+    [Parameter]
+    public CheckListModel CheckListModel { get; set; }
+
+
+    public List<UserModel> Users { get; set; }
+    public List<WarehouseModel> Warehouses{ get; set; }
+    public List<PartsModel> Parts{ get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (CheckListModel is null)
+        {
+            CheckListModel = new CheckListModel();
+        }
+        CheckListModel.check_date = DateTime.Now;
+        await GetAll();
+    }
+
+    async Task GetAll()
+    {
+        await GetUsers();
+        await GetWarehouses();
+        await GetParts();
+        StateHasChanged();
+    }
+
+    async Task GetUsers()
+    {
+        var result = await UserService.GetUsers();
+        if (result.Success)
+        {
+            Users = result.Data;
+        }
+    }
+
+    async Task GetWarehouses()
+    {
+        var result = await WarehouseService.GetWarehouses();
+        if (result.Success)
+        {
+            Warehouses = result.Data;
+        }
+    }
+
+    async Task GetParts()
+    {
+        var result = await PartsService.GetParts();
+        if (result.Success)
+        {
+            Parts = result.Data;
+        }
+    }
+
+    private void OnValidSubmit(EditContext context)
+    {
+        success = true;
+        StateHasChanged();
+    }
+
+    void OkClick()
+    {
+        MudDialog.Close(DialogResult.Ok(CheckListModel));
+    }
+
+    void CancelClick()
+    {
+        MudDialog.Cancel();
+    }
+}

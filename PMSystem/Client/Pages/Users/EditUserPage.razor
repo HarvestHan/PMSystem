@@ -1,0 +1,155 @@
+﻿@using PMSystem.Client.Dialogs;
+@using System.ComponentModel.DataAnnotations
+@using PMSystem.Shared
+
+@inject IDialogService DialogService
+@inject IUserService UserService;
+@inject IUserService UserService
+@inject IRoleService RoleService
+@inject ISnackbar Snackbar
+
+<EditForm Model="@UserModel" OnValidSubmit="OnValidSubmit">
+    <DataAnnotationsValidator />
+    <MudGrid>
+        <MudItem xs="12" sm="12">
+            <MudCard>
+                <MudCardContent>
+                    <MudGrid>
+                        <MudItem lg="6" md="6" sm="12">
+                            <MudTextField T="string" Label="职工姓名" HyperText="职工姓名" Class="mt-3" ReadOnly="true"
+                                          @bind-Value="@UserModel.user_name" />
+                        </MudItem>
+                        <MudItem lg="6" md="6" sm="12">
+                            <MudTextField T="string" Label="登录账号" HyperText="登录账号" Class="mt-3" ReadOnly="true"
+                                          @bind-Value="@UserModel.user_code" />
+                        </MudItem>
+                        <MudItem lg="6" md="6" sm="6">
+                            <MudTextField T="string" Label="性别" Class="mt-3" @bind-Value="@UserModel.sex" Required="true" RequiredError="性别不能为空！"
+                                  Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem lg="6" md="6" sm="6">
+                            <MudTextField T="string" Label="联系方式" Class="mt-3" @bind-Value="@UserModel.phone" Required="true" RequiredError="联系方式不能为空！"
+                                  Variant="Variant.Outlined" />
+                        </MudItem>
+                    </MudGrid>
+                    
+                 
+
+                    <MudGrid Spacing="2">
+                        <MudItem lg="12" md="12" sm="12">
+                            <MudCard>
+                                <MudCardHeader>
+                                    <MudText>权限</MudText>
+                                    <MudSpacer />
+                                    <MudButton Variant="Variant.Filled" Size="Size.Large"  Color="Color.Success" OnClick="()=>AddRole(UserModel)">添加</MudButton>
+                                </MudCardHeader>
+                                <MudCardContent>
+                                    @foreach (var item in Roles)
+                                    {
+                                        <MudGrid>
+                                            <MudItem sm="8" md="8" lg="8">
+                                                <MudText>@item.RealName</MudText>
+                                            </MudItem>
+                                            <MudItem sm="4" md="4" lg="4">
+                                                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="()=>RemoveRole(UserModel,item)">移除</MudButton>
+                                            </MudItem>
+                                        </MudGrid>
+                                    }
+                                </MudCardContent>
+                            </MudCard>
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="OkClick" Class="ml-auto">保存</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="CancelClick" Class="ml-auto">取消</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</EditForm>
+
+@code {
+    bool success;
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public UserModel UserModel { get; set; }
+    public List<RoleModel> Roles { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserModel is null)
+            UserModel = new UserModel();
+
+        await GetAll();
+        await GetRoles();
+        StateHasChanged();
+    }
+
+    async Task GetRoles()
+    {
+        //var result = await RoleService.GetRolesByUserID(UserModel.ID);
+        //if (result.Success) 
+        //{
+        //    Roles = result.Data;
+        //}
+        Roles = UserModel.Roles;
+    }
+
+    private void OnValidSubmit(EditContext context)
+    {
+        success = true;
+        StateHasChanged();
+    }
+    async Task GetAll()
+    {
+        await GetRoles();
+        StateHasChanged();
+    }
+
+
+    void OkClick()
+    {
+        MudDialog.Close(DialogResult.Ok(UserModel));
+    }
+
+    void CancelClick()
+    {
+        MudDialog.Cancel();
+    }
+
+    async Task AddRole(UserModel user)
+    {
+        var dialog = DialogService.Show<SelectRoleDialog>("添加");
+        var result = await dialog.Result;
+        if (!result.Cancelled)
+        {
+            var role = result.Data as RoleModel;
+            var response = await UserService.AddRole(user.id, role.id);
+            Snackbar.Add(response.Message, response.Success ? Severity.Success : Severity.Error);
+        }
+        await GetRoles();
+        StateHasChanged();
+    }
+
+    async Task RemoveRole(UserModel user, RoleModel role)
+    {
+        var response = await DialogService.Show<MakeSureDialog>("确认操作").Result;
+        if (!response.Cancelled) 
+        {
+            var result = await UserService.DeleteRole(user.id, role.id);
+            if (result.Success)
+            {
+                Snackbar.Add(result.Message, Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(result.Message, Severity.Error);
+            }
+            await GetRoles();
+            StateHasChanged();
+        }
+        StateHasChanged();
+    }
+}

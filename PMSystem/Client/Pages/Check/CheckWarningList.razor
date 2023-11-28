@@ -1,0 +1,175 @@
+﻿@page "/checkwarninglist"
+@using PMSystem.Shared
+@inject IMapper Mapper
+@inject ICheckListService CheckListService
+@inject IUserService UserService
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject ISnackbar SnackBar
+
+<style>
+    .selected {
+        background-color: #1E88E5 !important;
+    }
+
+        .selected > td {
+            color: white !important;
+        }
+
+            .selected > td .mud-input {
+                color: white !important;
+            }
+</style>
+<PageTitle>盘点异常列表</PageTitle>
+
+<MudBreadcrumbs Items="_items" Separator=">"></MudBreadcrumbs>
+
+<MudCard>
+    <MudCardHeader>
+        <MudGrid Class="align-center">
+            <MudItem lg="6" sm="12" Class="align-center">
+                <MudStack Row="true" Class="align-center">
+                    <MudText Typo="Typo.h6">盘点异常列表</MudText>
+                </MudStack>
+
+            </MudItem>
+            <MudItem lg="6" sm="12" Class="align-center">
+               <MudTextField T="string" Label="请输入您想搜索的内容" Variant="Variant.Outlined" Clearable="true" 
+                            AdornmentIcon="@Icons.Filled.Search" Adornment="Adornment.End"
+                            @bind-Text="searchText"/>
+            </MudItem>
+        </MudGrid>       
+    </MudCardHeader>
+
+
+    <MudCardContent>
+        @if (CheckListModels is null || CheckListModels.Count <= 0)
+        {
+            <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Center">
+                当前盘点异常列表为空！
+            </MudAlert>
+        }
+        else
+        {
+        <MudTable @ref="_table" T="CheckListModel" Items="@CheckListModels" Hover="true"
+          SortLabel="Sort By" Filter="FilterCheckList" Breakpoint="Breakpoint.Sm" RowsPerPage="10" LoadingProgressColor="Color.Info"
+          Virtualize="true" RowClassFunc="@SelectedRowClassFunc" OnRowClick="RowClickEvent">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<CheckListModel, object>(x=>x.id)">序号</MudTableSortLabel></MudTh>
+                <MudTh>盘点单编号</MudTh>
+                <MudTh>盘点日期</MudTh>
+                <MudTh>仓库名称</MudTh>
+                <MudTh>零件名称</MudTh>
+                <MudTh>记录数量</MudTh>
+                <MudTh>盘点数量</MudTh>
+                <MudTh>处理人</MudTh>
+                <MudTh>备注</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="ID">@context.id</MudTd>
+                <MudTd DataLabel="check_code">@context.check_code</MudTd>
+                <MudTd DataLabel="check_date">@context.check_date</MudTd>
+                <MudTd DataLabel="warehouse_">@context.warehouse_</MudTd>
+                <MudTd DataLabel="parts_">@context.parts_</MudTd>
+                <MudTd DataLabel="storage_count">@context.storage_count</MudTd>
+                <MudTd DataLabel="check_count">@context.check_count</MudTd>
+                <MudTd DataLabel="handle_">@context.handle_</MudTd>
+                <MudTd DataLabel="remark">@context.remark</MudTd>
+            </RowTemplate>
+
+            <PagerContent>
+                <div class="d-flex flex-column align-center">
+                    <MudPagination SelectedChanged="PageChanged" Count="@((_table.GetFilteredItemsCount() + _table.RowsPerPage - 1) / _table.RowsPerPage)" Class="pa-4" />
+                </div>
+            </PagerContent>
+        </MudTable>
+        }
+
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private bool isEmpty = false;
+    private bool isLoading = true;
+    private List<string> clickedEvents = new();
+    private int selectedRowNumber = -1;
+    private string infoFormat = "{first_item}-{last_item} of {all_items}";
+    public string searchText { get; set; }
+    private MudTable<CheckListModel> _table;
+    private List<BreadcrumbItem> _items = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem("盘点管理", href: "/checklistmanagement", icon: Icons.Material.Filled.Home),
+        new BreadcrumbItem("盘点异常列表", href: "/checkwarninglist", icon: Icons.Material.Filled.MoveUp),
+    };
+
+    [CascadingParameter]
+    public UserModel User{ get; set; }
+
+    private List<CheckListModel> CheckListModels { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        CheckListModels = new List<CheckListModel>();
+        await GetCheckLists();
+    }
+
+    async Task GetCheckLists()
+    {
+        var result = await CheckListService.GetCheckLists();
+        if (result.Success)
+        {
+            CheckListModels = result.Data.Where(it => it.storage_count != it.check_count && it.check_state == PMSystem.Shared.Enums.CheckState.已完成).ToList();
+        }
+    }
+
+    bool FilterCheckList(CheckListModel checkListModel)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+            return true;
+        if (checkListModel.check_code.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (checkListModel.warehouse_.warehouse_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (checkListModel.parts_.parts_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (checkListModel.storage_count.ToString().Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (checkListModel.check_count.ToString().Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (checkListModel.handle_.user_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (checkListModel.remark.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    private void PageChanged(int i)
+    {
+        _table.NavigateTo(i - 1);
+    }
+
+    private void RowClickEvent(TableRowClickEventArgs<CheckListModel> tableRowClickEventArgs)
+    {
+        clickedEvents.Add("Row has been clicked");
+    }
+
+    private string SelectedRowClassFunc(CheckListModel checkListModel, int rowNumber)
+    {
+        if (selectedRowNumber == rowNumber)
+        {
+            selectedRowNumber = -1;
+            clickedEvents.Add("Selected Row: None");
+            return string.Empty;
+        }
+        else if (_table.SelectedItem != null && _table.SelectedItem.Equals(checkListModel))
+        {
+            selectedRowNumber = rowNumber;
+            clickedEvents.Add($"Selected Row: {rowNumber}");
+            return "selected";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+}

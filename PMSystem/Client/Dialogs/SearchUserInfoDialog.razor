@@ -1,0 +1,54 @@
+﻿
+@using PMSystem.Shared
+
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex flex-column py-1">
+            <MudPaper Class="gap-y-5 d-flex flex-wrap" Elevation="0">
+                <MudPaper Class="d-flex justify-center flex-grow-1 gap-4 mud-width-full" Elevation="0">
+                    <MudCard Width="85%">
+                        <MudCardMedia Image="../resources/userinfo1.jpg" Height="80" />
+                        <MudCardHeader>
+                            <CardHeaderAvatar>
+                                <MudAvatar Style="height:90px; width:90px; font-size:2rem;" Image="../resources/useravatar.jpeg">I</MudAvatar>
+                            </CardHeaderAvatar>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h4"></MudText>
+                                <MudText Typo="Typo.body1">管理员</MudText>
+                            </CardHeaderContent>
+                            <CardHeaderActions>
+                                <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
+                            </CardHeaderActions>
+                        </MudCardHeader>
+                        <MudDivider/>
+                        <MudCardContent>
+                            <MudGrid Class="align-center" Style="max-width: 800px;" Elevation="0">
+                                <MudItem xs="12">
+                                    <MudPaper Square="true" Elevation="0" Height="40px">
+                                        <MudChip Width="20px" Size="Size.Large">个人信息</MudChip>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudPaper Square="true" Elevation="0" Height="20px">
+                                        <MudDivider DividerType="DividerType.Inset" />
+                                    </MudPaper>
+                                </MudItem>
+                            </MudGrid>
+                        <MudChip Icon="@Icons.Material.Filled.Person" Color="Color.Info">中国民用航空飞行学院洛阳分院</MudChip>
+                @foreach (var role in User.Roles)
+                {
+                    <MudChip Icon="@Icons.Material.Filled.Person" Color="Color.Info">@role.RealName</MudChip>
+                }
+            </MudCardContent>
+                    </MudCard>
+                </MudPaper>
+            </MudPaper>
+        </div>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    public UserModel User { get; set; }
+
+}

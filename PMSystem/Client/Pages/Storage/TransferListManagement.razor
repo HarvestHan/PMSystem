@@ -1,0 +1,300 @@
+﻿@page "/transfermanagement"
+@using PMSystem.Shared
+@inject IMapper Mapper
+@inject ITransferListService TransferListService
+@inject IUserService UserService
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject ISnackbar SnackBar
+
+<style>
+    .selected {
+        background-color: #1E88E5 !important;
+    }
+
+        .selected > td {
+            color: white !important;
+        }
+
+            .selected > td .mud-input {
+                color: white !important;
+            }
+</style>
+<PageTitle>调拨管理</PageTitle>
+
+<MudBreadcrumbs Items="_items" Separator=">"></MudBreadcrumbs>
+
+<MudCard>
+    <MudCardHeader>
+        <MudGrid Class="align-center">
+            <MudItem lg="6" sm="12" Class="align-center">
+                <MudStack Row="true" Class="align-center">
+                    <MudText Typo="Typo.h6">调拨管理</MudText>
+                    @if(User.Roles.Where(r => r.id == 4).ToList().Count != 0)
+                    {
+                        <MudButton Target="_blank" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.MoveUp" Color="Color.Info" OnClick="New">新增调拨</MudButton>
+                    }
+                </MudStack>
+
+            </MudItem>
+            <MudItem lg="6" sm="12" Class="align-center">
+               <MudTextField T="string" Label="请输入您想搜索的内容" Variant="Variant.Outlined" Clearable="true" 
+                            AdornmentIcon="@Icons.Filled.Search" Adornment="Adornment.End"
+                            @bind-Text="searchText"/>
+            </MudItem>
+        </MudGrid>       
+    </MudCardHeader>
+
+
+    <MudCardContent>
+        @if (TransferListModels is null || TransferListModels.Count <= 0)
+        {
+            <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Center">
+                当前调拨信息为空！
+            </MudAlert>
+        }
+        else
+        {
+        <MudTable @ref="_table" T="TransferListModel" Items="@TransferListModels" Hover="true"
+          SortLabel="Sort By" Filter="FilterTransferList" Breakpoint="Breakpoint.Sm" RowsPerPage="10" LoadingProgressColor="Color.Info"
+          Virtualize="true" RowClassFunc="@SelectedRowClassFunc" OnRowClick="RowClickEvent">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<TransferListModel, object>(x=>x.id)">序号</MudTableSortLabel></MudTh>
+                <MudTh>调拨单编号</MudTh>
+                <MudTh>调拨日期</MudTh>
+                <MudTh>零件名称</MudTh>
+                <MudTh>调拨数量</MudTh>
+                <MudTh>转出仓库</MudTh>
+                <MudTh>转入仓库</MudTh>
+                <MudTh>处理人</MudTh>
+                <MudTh>备注</MudTh>
+                <MudTh>审核意见</MudTh>
+                <MudTh>状态</MudTh>
+                <MudTh>操作</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="id">@context.id</MudTd>
+                <MudTd DataLabel="transfer_code">@context.transfer_code</MudTd>
+                <MudTd DataLabel="transfer_date">@context.transfer_date</MudTd>
+                <MudTd DataLabel="Tparts">@context.parts_</MudTd>
+                <MudTd DataLabel="count">@context.count</MudTd>
+                <MudTd DataLabel="out_warehouse_">@context.out_warehouse_</MudTd>
+                <MudTd DataLabel="in_warehouse_">@context.in_warehouse_</MudTd>
+                <MudTd DataLabel="handle_">@context.handle_</MudTd>
+                <MudTd DataLabel="remark">@context.remark</MudTd>
+                @if(context.transfer_state == PMSystem.Shared.Enums.TransferState.待审核)
+                {
+                    <MudTd DataLabel="suggestion">审核中</MudTd>
+                }
+                else
+                {
+                    <MudTd DataLabel="suggestion">@context.suggestion</MudTd>
+                }
+                    @if (context.transfer_state == PMSystem.Shared.Enums.TransferState.待审核)
+                {
+                    <MudTd DataLabel="transfer_state"><MudChip Text="blue" Variant="Variant.Filled" Color="Color.Info">待审核</MudChip></MudTd>
+                }
+                else if(context.transfer_state == PMSystem.Shared.Enums.TransferState.待修改)
+                {
+                    <MudTd DataLabel="transfer_state"><MudChip Text="red" Variant="Variant.Filled" Color="Color.Error">待修改</MudChip></MudTd>
+                }
+                else if(context.transfer_state == PMSystem.Shared.Enums.TransferState.待调拨)
+                {
+                    <MudTd DataLabel="transfer_state"><MudChip Text="orange" Variant="Variant.Filled" Color="Color.Warning">待调拨</MudChip></MudTd>
+                }
+                else
+                {
+                    <MudTd DataLabel="transfer_state"><MudChip Text="green" Variant="Variant.Filled" Color="Color.Success">已完成</MudChip></MudTd>
+                }
+                <MudTd DataLabel="Operate">
+                    <MudStack AlignItems="AlignItems.Center" Row="true">
+                        @if ((User.Roles.Where(r => r.id == 2).ToList().Count != 0) && (context.transfer_state == PMSystem.Shared.Enums.TransferState.待审核))
+                        {
+                            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Edit(context);})" Icon="@Icons.Material.Filled.Edit" Color="Color.Success" Size="@Size.Medium">审核</MudButton>
+                        }
+                        @if ((User.Roles.Where(r => r.id == 4).ToList().Count != 0) && (context.transfer_state == PMSystem.Shared.Enums.TransferState.待修改))
+                        {
+                            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Edit(context);})" Icon="@Icons.Material.Filled.Edit" Color="Color.Error" Size="@Size.Medium">修改</MudButton>
+                        }
+                        @if (User.Roles.Where(r => r.id == 1).ToList().Count != 0) 
+                        {
+                            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Delete(context);})" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="@Size.Medium">删除</MudButton>
+                        }
+                        @if ((User.Roles.Where(r => r.id == 4).ToList().Count != 0) && (context.transfer_state == PMSystem.Shared.Enums.TransferState.待调拨))
+                        {
+                            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Transfer(context);})" Icon="@Icons.Material.Filled.Delete" Color="Color.Secondary" Size="@Size.Medium">完成</MudButton>
+                        }
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+
+            <PagerContent>
+                <div class="d-flex flex-column align-center">
+                    <MudPagination SelectedChanged="PageChanged" Count="@((_table.GetFilteredItemsCount() + _table.RowsPerPage - 1) / _table.RowsPerPage)" Class="pa-4" />
+                </div>
+            </PagerContent>
+        </MudTable>
+        }
+
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private bool isEmpty = false;
+    private bool isLoading = true;
+    private List<string> clickedEvents = new();
+    private int selectedRowNumber = -1;
+    private string infoFormat = "{first_item}-{last_item} of {all_items}";
+    public string searchText { get; set; }
+    private MudTable<TransferListModel> _table;
+    private List<BreadcrumbItem> _items = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem("库内管理", href: "/storageinfomanagement", icon: Icons.Material.Filled.Home),
+        new BreadcrumbItem("调拨管理", href: "/transfermanagement", icon: Icons.Material.Filled.MoveUp),
+    };
+
+    [CascadingParameter]
+    public UserModel User{ get; set; }
+
+    private List<TransferListModel> TransferListModels { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        TransferListModels = new List<TransferListModel>();
+        await GetTransferLists();
+    }
+
+    async Task GetTransferLists()
+    {
+        var result = await TransferListService.GetTransferLists();
+        if (result.Success)
+        {
+            if (User.Roles.Where(r => r.id == 1).ToList().Count != 0)
+            {
+                TransferListModels = result.Data;
+            }
+            else if (User.Roles.Where(r => r.id == 2).ToList().Count != 0)
+            {
+                TransferListModels = result.Data.Where(t => t.transfer_state == PMSystem.Shared.Enums.TransferState.待审核).ToList();
+            }
+            else if (User.Roles.Where(r => r.id == 4).ToList().Count != 0)
+            {
+                TransferListModels = result.Data.Where(t => t.transfer_state == PMSystem.Shared.Enums.TransferState.待修改 || t.transfer_state == PMSystem.Shared.Enums.TransferState.待审核 || t.transfer_state == PMSystem.Shared.Enums.TransferState.待调拨).ToList();
+            }
+        }
+    }
+
+    private async Task Edit(TransferListModel transferListModel)
+    {
+        TransferListModel model = Mapper.Map<TransferListModel>(transferListModel);
+        var parameters = new DialogParameters { ["TransferListModel"] = model };
+        var dialog = DialogService.Show<TransferListEditPage>("编辑调拨信息", parameters);
+        var result = await dialog.Result;
+        if (!result.Cancelled)
+        {
+            var response = await TransferListService.UpdateTransferList(Mapper.Map<TransferListModel, UpdateTransferListModel>(result.Data as TransferListModel));
+            if (response.Success)
+                transferListModel = result.Data as TransferListModel;
+            SnackBar.Add(response.Message, response.Success ? Severity.Success : Severity.Error);
+        }
+        if (transferListModel.transfer_state == PMSystem.Shared.Enums.TransferState.待调拨)
+        {
+            Transfer(transferListModel);
+        }
+        await GetTransferLists();
+        StateHasChanged();
+    }
+
+    private async Task New()
+    {
+        var dialog = DialogService.Show<TransferListAddPage>("添加调拨信息");
+        var result = await dialog.Result;
+        if (!result.Cancelled)
+        {
+            var apiResult = await TransferListService.AddTransferList(Mapper.Map<TransferListModel, AddTransferListModel>(result.Data as TransferListModel));
+            if (apiResult.Success)
+            {
+                SnackBar.Add(apiResult.Message, Severity.Success);
+            }
+            else
+            {
+                SnackBar.Add(apiResult.Message, Severity.Error);
+            }
+            await GetTransferLists();
+        }
+        StateHasChanged();
+    }
+
+    public async void Delete(TransferListModel e)
+    {
+        var result = await DialogService.Show<MakeSureDialog>("确认操作").Result;
+        if (!result.Cancelled)
+        {
+            var response = await TransferListService.DeleteTransferList(e.id);
+            SnackBar.Add(response.Message, response.Success ? Severity.Success : Severity.Error);
+        }
+        await GetTransferLists();
+        StateHasChanged();
+    }
+
+    public async void Transfer(TransferListModel e)
+    {
+        List<int> list = new List<int>();
+        list.Add(e.parts_.id);
+        list.Add(e.out_warehouse_.id);
+        list.Add(e.in_warehouse_.id);
+        list.Add(e.count);
+        var response = await TransferListService.Transfer(list);
+        await GetTransferLists();
+        StateHasChanged();
+    }
+
+    bool FilterTransferList(TransferListModel transferListModel)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+            return true;
+        if (transferListModel.transfer_code.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (transferListModel.parts_.parts_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (transferListModel.count.ToString().Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (transferListModel.in_warehouse_.warehouse_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (transferListModel.out_warehouse_.warehouse_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (transferListModel.remark.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    private void PageChanged(int i)
+    {
+        _table.NavigateTo(i - 1);
+    }
+
+    private void RowClickEvent(TableRowClickEventArgs<TransferListModel> tableRowClickEventArgs)
+    {
+        clickedEvents.Add("Row has been clicked");
+    }
+
+    private string SelectedRowClassFunc(TransferListModel transferListModel, int rowNumber)
+    {
+        if (selectedRowNumber == rowNumber)
+        {
+            selectedRowNumber = -1;
+            clickedEvents.Add("Selected Row: None");
+            return string.Empty;
+        }
+        else if (_table.SelectedItem != null && _table.SelectedItem.Equals(transferListModel))
+        {
+            selectedRowNumber = rowNumber;
+            clickedEvents.Add($"Selected Row: {rowNumber}");
+            return "selected";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+}

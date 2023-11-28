@@ -1,0 +1,85 @@
+﻿@using PMSystem.Client.Dialogs;
+@using System.ComponentModel.DataAnnotations
+@using PMSystem.Shared
+
+@inject IDialogService DialogService
+@inject IPartsService PartsService
+@inject ISnackbar Snackbar
+
+<EditForm Model="@PartsModel" OnValidSubmit="OnValidSubmit">
+    <DataAnnotationsValidator />
+    <MudGrid>
+        <MudItem xs="12" sm="12">
+            <MudCard>
+                <MudCardContent>
+                    <MudGrid>
+                        <MudItem lg="6" md="6" sm="12">
+                            <MudTextField T="string" Label="零件编码" Class="mt-3" @bind-Value="@PartsModel.parts_code" Required="true" RequiredError="零件编码不能为空！" 
+                                            Variant="Variant.Outlined"/>
+                        </MudItem>
+                        <MudItem lg="6" md="6" sm="12">
+                            <MudTextField T="string" Label="零件名称" Class="mt-3" @bind-Value="@PartsModel.parts_name" Required="true" RequiredError="零件名称不能为空！" 
+                                            Variant="Variant.Outlined"/>
+                        </MudItem>
+                        <MudItem lg="6" md="6" sm="12">
+                            <MudTextField T="string" Label="零件规格" Class="mt-3" @bind-Value="@PartsModel.specification" Required="true" RequiredError="零件规格不能为空！"
+                                            Variant="Variant.Outlined"/>
+                        </MudItem>
+                        <MudItem lg="6" md="6" sm="12">
+                            <MudTextField T="string" Label="零件颜色" Class="mt-3" @bind-Value="@PartsModel.color" Required="true" RequiredError="零件颜色不能为空！"
+                                            Variant="Variant.Outlined"/>
+                        </MudItem>
+                        <MudItem lg="6" md="6" sm="12">
+                            <MudTextField T="string" Label="计量单位" Class="mt-3" @bind-Value="@PartsModel.unit" Required="true" RequiredError="计量单位不能为空！"
+                                            Variant="Variant.Outlined"/>
+                        </MudItem>
+                        <MudItem lg="6" md="6" sm="12">
+                            <MudNumericField Label="零件体积" Class="mt-3" @bind-Value="@PartsModel.volume" Variant="Variant.Outlined" Required="true" RequiredError="零件体积不能为空！"/>
+                        </MudItem>
+                        <MudItem lg="6" md="6" sm="12">
+                            <MudNumericField Label="零件重量" Class="mt-3" @bind-Value="@PartsModel.weight" Variant="Variant.Outlined" Required="true" RequiredError="零件重量不能为空！"/>
+                        </MudItem>
+                        <MudItem lg="12" md="12" sm="12">
+                            <MudTextField T="string" Label="备注" Class="mt-3" @bind-Value="@PartsModel.remark" Lines="2" Variant="Variant.Outlined"/>
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="OkClick" Class="ml-auto">保存</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="CancelClick" Class="ml-auto">取消</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</EditForm>
+
+@code {
+    bool success;
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public PartsModel PartsModel { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (PartsModel is null)
+            PartsModel = new PartsModel();
+        StateHasChanged();
+    }
+
+    private void OnValidSubmit(EditContext context)
+    {
+        success = true;
+        StateHasChanged();
+    }
+
+    void OkClick()
+    {
+        MudDialog.Close(DialogResult.Ok(PartsModel));
+    }
+
+    void CancelClick()
+    {
+        MudDialog.Cancel();
+    }
+}

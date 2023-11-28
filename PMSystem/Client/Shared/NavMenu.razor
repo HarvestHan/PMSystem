@@ -1,0 +1,70 @@
+﻿
+
+<AuthorizeView>
+    <Authorized>
+
+        <MudNavMenu style="font-size:18px">
+            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Filled.Home">首页</MudNavLink>
+
+            <AuthorizeView Roles="Admin,Supervisor,InboundClerk,Keeper,OutboundClerk" Context="s">
+                <Authorized>
+                    <MudNavGroup Title="业务管理" Icon="@Icons.Filled.AccountTree" Expanded="false">
+                        <AuthorizeView Roles="Admin,Supervisor,InboundClerk,Keeper" Context="a">
+                            <Authorized>
+                                <MudNavLink Href="/inboundlistmanagement" Match="NavLinkMatch.Prefix">入库管理</MudNavLink>
+                            </Authorized>
+                        </AuthorizeView>
+                        <AuthorizeView Roles="Admin,Supervisor,Keeper,OutboundClerk" Context="a">
+                            <Authorized>
+                                <MudNavLink Href="/outboundlistmanagement" Match="NavLinkMatch.Prefix">出库管理</MudNavLink>
+                            </Authorized>
+                        </AuthorizeView>
+                        <AuthorizeView Roles="Admin,Supervisor,Keeper" Context="a">
+                            <Authorized>
+                                <MudNavLink Href="/checklistmanagement" Match="NavLinkMatch.Prefix">盘点管理</MudNavLink>
+                            </Authorized>
+                        </AuthorizeView>
+                        <AuthorizeView Roles="Admin,Supervisor,Keeper,InboundClerk,OutboundClerk" Context="a">
+                            <Authorized>
+                                <MudNavLink Href="/storageinfomanagement" Match="NavLinkMatch.Prefix">库内管理</MudNavLink>
+                            </Authorized>
+                        </AuthorizeView>
+                    </MudNavGroup>
+                </Authorized>
+            </AuthorizeView>
+
+            <AuthorizeView Roles="Admin" Context="s">
+                <Authorized>
+                    <MudNavGroup Title="基本信息管理" Icon="@Icons.Filled.VerifiedUser" Expanded="false">
+                        <AuthorizeView Roles="Admin" Context="a">
+                            <Authorized>
+                                <MudNavLink Href="/warehousemanagement" Match="NavLinkMatch.Prefix">仓库信息管理</MudNavLink>
+                                <MudNavLink Href="/partsmanagement" Match="NavLinkMatch.Prefix">零件信息管理</MudNavLink>
+                            </Authorized>
+                        </AuthorizeView>
+                    </MudNavGroup>
+                </Authorized>
+            </AuthorizeView>
+
+            <AuthorizeView Roles="Admin,Supervisor,InboundClerk,Keeper,OutboundClerk" Context="s">
+                <Authorized>
+                    <MudNavGroup Title="用户信息管理" Icon="@Icons.Material.Filled.ManageAccounts" Expanded="false">
+                        <AuthorizeView Roles="Admin" Context="a">
+                            <Authorized>
+                                <MudNavLink Href="/usermanagementpage" Match="NavLinkMatch.Prefix">用户信息</MudNavLink>
+                            </Authorized>
+                        </AuthorizeView>
+                        <AuthorizeView Roles="Admin,Supervisor,InboundClerk,Keeper,OutboundClerk" Context="a">
+                            <Authorized>
+                                <MudNavLink Href="/userinfopage" Match="NavLinkMatch.Prefix">个人信息</MudNavLink>
+                                <MudNavLink Href="/editpasswordpage" Match="NavLinkMatch.Prefix">修改密码</MudNavLink>
+                            </Authorized>
+                        </AuthorizeView>
+                    </MudNavGroup>
+                </Authorized>
+            </AuthorizeView>
+
+
+        </MudNavMenu>
+    </Authorized>
+</AuthorizeView>

@@ -1,0 +1,42 @@
+﻿@using BootstrapBlazor.Components;
+@using System.Diagnostics.CodeAnalysis;
+<Captcha ImagesPath="https://api.xingzhige.com/API/Bing_img/" OnValid="@OnValid" />
+
+@code {
+    /// <summary>
+    /// 获得/设置 图床路径 默认值为 images
+    /// </summary>
+    public string ImagesPath { get; set; } = "_content/BootstrapBlazor.Shared/images";
+
+    [NotNull]
+    private Captcha? Captcha { get; set; }
+
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        MudDialog.Options.MaxWidth = MaxWidth.ExtraSmall;
+        MudDialog.SetOptions(MudDialog.Options);
+    }
+
+    private void OnValid(bool ret)
+    {
+        var result = ret ? "成功" : "失败";
+
+        if (ret)
+        {
+            Task.Run(async () =>
+            {
+                MudDialog.Close(MudBlazor.DialogResult.Ok(true));
+            });
+        }
+        else
+        {
+            Task.Run(async () =>
+            {
+                await Task.Delay(1000);
+                await Captcha.Reset();
+            });
+        }
+    }
+}

@@ -1,0 +1,169 @@
+﻿@using PMSystem.Client.Dialogs;
+@using System.ComponentModel.DataAnnotations
+@using PMSystem.Shared
+
+@inject IDialogService DialogService
+@inject IInboundListService InboundListService
+@inject IUserService UserService
+@inject IWarehouseService WarehouseService
+@inject IPartsService PartsService
+@inject ISnackbar Snackbar
+
+<EditForm Model="@InboundListModel" OnValidSubmit="OnValidSubmit">
+    <DataAnnotationsValidator />
+    <MudGrid>
+        <MudItem xs="12" sm="12">
+            <MudCard>
+                <MudCardContent>
+                    <MudGrid>
+                        <MudItem lg="6" md="6" sm="12">
+                            <MudTextField T="string" Label="入库单编号" Required="true" RequiredError="入库单编号不能为空！" Variant="Variant.Outlined" Disabled="true"
+                                          @bind-Value="@InboundListModel.inbound_code" />
+                        </MudItem>
+                        <MudItem lg="6" md="6" sm="12">
+                            <MudDatePicker T="DateTime" Label="日期" Required="true" RequiredError="日期不能为空！" Variant="Variant.Outlined" ReadOnly="true"
+                                          @bind-Value="@InboundListModel.inbound_date" />
+                        </MudItem>
+                        <MudItem lg="12" md="12" sm="12">
+                            <MudSelect T="WarehouseModel" Label="选择仓库" Class="mt-3" Required="true" RequiredError="仓库不能为空！" Variant="Variant.Outlined"
+                                          @bind-Value="@InboundListModel.warehouse_" AnchorOrigin="Origin.BottomCenter">
+                                @foreach(var item in Warehouses)
+                                {
+                                    <MudSelectItem T="WarehouseModel" Value="item" />
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem lg="12" md="12" sm="12">
+                            <MudSelect T="PartsModel" Label="选择零件" Class="mt-3" Required="true" RequiredError="零件不能为空！" Variant="Variant.Outlined"
+                                          @bind-Value="@InboundListModel.parts_" AnchorOrigin="Origin.BottomCenter">
+                                @foreach(var item in Parts)
+                                {
+                                    <MudSelectItem T="PartsModel" Value="item" />
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem lg="12" md="12" sm="12">
+                            <MudNumericField Label="入库数量" Class="mt-3" @bind-Value="@InboundListModel.count" Required="true" RequiredError="入库数量不能为空！"
+                                        Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem lg="12" md="12" sm="12">
+                            <MudSelect Label="选择处理人" Class="mt-3" Required="true" RequiredError="处理人不能为空！" Variant="Variant.Outlined"
+                                          @bind-Value="@InboundListModel.handle_" >
+                                @foreach(var item in Users)
+                                {
+                                    <MudSelectItem T="UserModel" Value="item" />
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem lg="12" md="12" sm="12">
+                            <MudTextField T="string" Label="备注" Class="mt-3" Lines="2" Variant="Variant.Outlined"
+                                          @bind-Value="@InboundListModel.remark" />
+                        </MudItem>
+                        <MudItem lg="12" md="12" sm="12">
+                            <MudTextField T="string" Label="审核意见" Class="mt-3" Lines="2" Variant="Variant.Outlined"
+                                          @bind-Value="@InboundListModel.suggestion" />
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+                <MudCardActions>
+                    @if ((InboundListModel.inbound_state == PMSystem.Shared.Enums.InboundState.待审核))
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="OkClick" Class="ml-auto">同意</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="CancelClick" Class="ml-auto">驳回</MudButton>
+                    }
+                    @if ((InboundListModel.inbound_state == PMSystem.Shared.Enums.InboundState.待修改))
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Submit" Class="ml-auto">提交</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Cancel" Class="ml-auto">取消</MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</EditForm>
+
+    @code {
+    bool success;
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public InboundListModel InboundListModel { get; set; }
+    public List<WarehouseModel> Warehouses { get; set; }
+    public List<PartsModel> Parts { get; set; }
+    public List<UserModel> Users { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (InboundListModel is null)
+            InboundListModel = new InboundListModel();
+
+        await GetAll();
+        StateHasChanged();
+    }
+
+    private void OnValidSubmit(EditContext context)
+    {
+        success = true;
+        StateHasChanged();
+    }
+    async Task GetAll()
+    {
+        await GetWarehouses();
+        await GetParts();
+        await GetUsers();
+        StateHasChanged();
+    }
+
+    async Task GetWarehouses()
+    {
+        var result = await WarehouseService.GetWarehouses();
+        if (result.Success)
+        {
+            Warehouses = result.Data;
+        }
+        StateHasChanged();
+    }
+
+    async Task GetParts()
+    {
+        var result = await PartsService.GetParts();
+        if (result.Success)
+        {
+            Parts = result.Data;
+        }
+        StateHasChanged();
+    }
+
+    async Task GetUsers()
+    {
+        var result = await UserService.GetUsers();
+        if (result.Success)
+        {
+            Users = result.Data;
+        }
+        StateHasChanged();
+    }
+
+    void OkClick()
+    {
+        InboundListModel.inbound_state = PMSystem.Shared.Enums.InboundState.待入库;
+        MudDialog.Close(DialogResult.Ok(InboundListModel));
+    }
+
+    void CancelClick()
+    {
+        InboundListModel.inbound_state = PMSystem.Shared.Enums.InboundState.待修改;
+        MudDialog.Close(DialogResult.Ok(InboundListModel));
+    }
+
+    void Submit()
+    {
+        InboundListModel.inbound_state = PMSystem.Shared.Enums.InboundState.待审核;
+        MudDialog.Close(DialogResult.Ok(InboundListModel));
+    }
+
+    void Cancel()
+    {
+        MudDialog.Close(DialogResult.Ok(InboundListModel));
+    }
+}

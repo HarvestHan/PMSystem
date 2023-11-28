@@ -1,0 +1,31 @@
+﻿
+<MudCard>
+    <MudCardContent>
+        <MudGrid>
+            <MudItem xs="8" lg="8" sm="6" md="8" Class="d-flex align-center ">
+                <MudStack>
+                    <MudText Typo="Typo.h6" Color="@HeaderColor">@Header</MudText>
+                    <MudText Typo="Typo.body1" Color="@BodyColor">@Body</MudText>
+                </MudStack>
+            </MudItem>
+            <MudItem xs="4" lg="4" sm="6" md="4" Class="d-flex justify-center align-center">
+                <MudPaper Class="mud-theme-primary d-flex align-center justify-center align-self-strentch" Height="75px" Width="75px">
+                    <MudIcon Icon="@Icons.Filled.Room" Size="Size.Large"></MudIcon>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter]
+    public string Header { get; set; }
+    [Parameter]
+    public string Body { get; set; }
+    [Parameter]
+    public Color HeaderColor { get; set; }
+    [Parameter]
+    public Color BodyColor { get; set; }
+    [Parameter]
+    public Color ButtonColor { get; set; }
+}

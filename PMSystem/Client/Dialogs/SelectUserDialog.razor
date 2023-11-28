@@ -1,0 +1,47 @@
+﻿@inject IUserService UserService
+
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex flex-column py-1">
+            <MudSelect T="UserModel" @bind-Value="User"
+                       Variant="Variant.Outlined" Label="选择用户">
+                @foreach (var item in Users)
+                {
+                            <MudSelectItem T="UserModel" Value="item" />
+                }
+            </MudSelect>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="Ok">确定</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Close">关闭</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    public UserModel User { get; set; }
+    public List<UserModel> Users { get; set; }
+
+    void Close() => MudDialog.Close(DialogResult.Cancel());
+
+    protected override async Task OnInitializedAsync()
+    {
+        User = new UserModel();
+        await GetAllUsers();
+    }
+
+    async Task GetAllUsers()
+    {
+        var result = await UserService.GetUsers();
+        if (result.Success)
+        {
+            Users = result.Data;
+        }
+    }
+    void Ok()
+    {
+        if (User is not null)
+            MudDialog.Close(DialogResult.Ok(User));
+    }
+}

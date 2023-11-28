@@ -1,0 +1,197 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor.ThemeManager.Models
+@using MudExtensions
+@using PMSystem.Client.Pages
+@using System.Security.Claims
+@using System.Text.Json;
+@inherits LayoutComponentBase
+@inject ILocalStorageService LocalStorageService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject IUserService UserService
+@inject IAuthService AuthService
+
+<MudDialogProvider FullWidth="true"
+                   CloseButton="true"
+                   DisableBackdropClick="true"
+                   MaxWidth="MaxWidth.Large"
+                   NoHeader="false"
+                   Position="DialogPosition.Center" />
+<MudSnackbarProvider />
+
+<MudThemeProvider Theme="_theme" />
+<CascadingValue Value="@CurrentUser">
+    <CascadingValue Value="@User">
+        <CascadingValue Value="@LoginInfo">
+            <MudLayout>
+                <AuthorizeView>
+                    <!--Authorized验证通过显示-->
+                    <Authorized>
+                        <MudAppBar Style="color:white;background:#2d62a3">
+                            <MudIconButton Color="Color.Inherit"
+                                           Edge="Edge.Start"
+                                           Icon="@Icons.Material.Filled.Menu"
+                                           OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+                            @*<MudIconButton Icon="@Icons.Material.Outlined.Notifications" Color="Color.Warning" />
+                            <MudText Typo="Typo.h5" Class="mx-auto">中国民用航空飞行学院洛阳分院</MudText>
+                            <MudImage Src="../resources/loginlogo.png" Alt="图片加载错误" style="width:350px;height:75px;margin:0 auto;" />
+                            <MudText Typo="Typo.h4" Class="mx-auto" Style="font-family:STXingkai;text-align:center;color:white">中国民用航空飞行学院洛阳分院</MudText>*@
+                            <MudSpacer />
+                            <MudMenu FullWidth="true" Variant="Variant.Outlined" ActivationEvent="@MouseEvent.MouseOver" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
+                                <ActivatorContent>
+                                    <MudChip Class="mr-8" Icon="@Icons.Material.Filled.SupervisedUserCircle" Color="Color.Primary">@User?.user_name</MudChip>
+                                </ActivatorContent>
+                                <ChildContent>
+                                    <MudMenuItem OnClick="UserInfo">个人信息</MudMenuItem>
+                                    <MudMenuItem OnClick="@(e => _themeManagerOpen = true)">主题</MudMenuItem>
+                                    <MudMenuItem OnClick="LoginOut">注销</MudMenuItem>
+                                </ChildContent>
+                            </MudMenu>
+                        </MudAppBar>
+                        <MudDrawer @bind-Open="@_drawerOpen"
+                        Style="color:white;background:#2d62a3"
+                                   Elevation="1">
+                            <MudDrawerHeader Style="background:white;">
+                                <MudStack Row="true" Class="align-center d-flex">
+                                    <MudText style="font-size:15px;color:#2d62a3;padding-right:0;padding-left:0;" Align="Align.Center">汽车零件<br/>仓储管理信息系统</MudText>
+                                </MudStack>
+                            </MudDrawerHeader>
+
+                            <NavMenu />
+                        </MudDrawer>
+                        @*<MudThemeManager @bind-Open="_themeManagerOpen"
+                                         @bind-Theme="_theme"
+                                         Configuration="_themeManagerConfiguration.Value" />
+                        <MudThemeManagerButton OnClick="@(e => _themeManagerOpen = true)" />*@
+                        <MudMainContent>
+               
+                            @*<MudPaper  Class="mud-theme-primary ">*@
+                                @Body
+            
+                        </MudMainContent>
+                    </Authorized>
+                    <!--NotAuthorized验证不通过显示-->
+                    <NotAuthorized>
+                        <div style="width:100%;height:100vh;" class="login2">
+
+                            <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-content-center" Style="height: 100vh;">
+                                <MudPaper Elevation="25" Class="pa-8" Style="width:500px;background:none;box-shadow:none;margin-top:-400px">
+                                    <NewLogin LoginSuccessEvent="LoginSuccess" />
+                                </MudPaper>
+                            </MudContainer>
+
+                        </div>
+
+                        <!--<Login LoginSuccessEvent="LoginSuccess"/>-->
+                    </NotAuthorized>
+                </AuthorizeView>
+
+            </MudLayout>
+        </CascadingValue>
+    </CascadingValue>
+</CascadingValue>
+
+
+@code {
+    public string LoginStyle { get; set; }
+
+    public ClaimsPrincipal CurrentUser { get; set; }
+    [CascadingParameter]
+    public UserModel User { get; set; }
+    [CascadingParameter]
+    public LoginInfoModel LoginInfo { get; set; }
+
+    private readonly Dictionary<string, ThemeManagerConfiguration> _themeManagerConfigurations = new()
+    {
+        {"预设一", ThemeManagerPresetConfigurations.GetPresetConfigOne()},
+        {"预设二", ThemeManagerPresetConfigurations.GetPresetConfigTwo()}
+    };
+
+    private MudTheme _theme = new()
+        {
+            Palette = new Palette
+            {
+                Primary = Colors.Green.Default,
+                Secondary = Colors.Amber.Default
+            }
+        };
+
+    private KeyValuePair<string, ThemeManagerConfiguration> _themeManagerConfiguration;
+
+    private bool _drawerOpen=true;
+    private bool _themeManagerOpen;
+
+    protected override async void OnInitialized()
+    {
+        _themeManagerConfiguration = _themeManagerConfigurations.First();
+    }
+
+    private void ThemeManagerConfigChanged(string key)
+    {
+        _themeManagerConfiguration = _themeManagerConfigurations.FirstOrDefault(x => x.Key == key);
+    }
+
+
+    bool _isDarkMode = false;
+
+    public bool IsDarkModel
+    {
+        get { return _isDarkMode; }
+        set { _isDarkMode = value; }
+    }
+
+    //注销
+    async void LoginOut()
+    {
+        await LocalStorageService.RemoveItemAsync("authToken");
+        await LocalStorageService.ClearAsync();
+        await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        NavigationManager.NavigateTo("login");
+    }
+
+    async void UserInfo()
+    {
+        NavigationManager.NavigateTo("userinfopage");
+    }
+
+    async void GetLoginInfo()
+    {
+        var result = await AuthService.GetLoginInfo();
+        if (result.Success)
+        {
+            LoginInfo = result.Data;
+        }
+        await LocalStorageService.SetItemAsync("loginInfo",LoginInfo);
+        StateHasChanged();
+    }
+
+    async void LoginSuccess()
+    {
+
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity.IsAuthenticated)
+        {
+            CurrentUser = state.User;
+            User = (await UserService.GetUser()).Data;
+        }
+        StateHasChanged();
+        NavigationManager.NavigateTo("/");
+        GetLoginInfo();
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity.IsAuthenticated)
+        {
+            CurrentUser = state.User;
+            User = (await UserService.GetUser()).Data;
+        }
+        StateHasChanged();
+
+        LoginStyle = "login2";
+    }
+
+}

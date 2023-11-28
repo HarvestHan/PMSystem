@@ -1,0 +1,24 @@
+﻿/*.login0 {
+    width: 100%;
+    height: 100%;
+    background-image: url(../resources/Bg.jpg);
+    background-size: cover;
+    background-position: 0px -100px;
+    background-repeat:no-repeat;
+}
+.login1{
+    width: 100%;
+    height: 100%;
+    background-image: url(../resources/Bg1.jpg);
+    background-size: 100% 100%;
+    background-attachment: fixed;
+}*/
+
+.login2 {
+    width: 100%;
+    height: 100%;
+    background-image: url(../wwwroot/resources/back.jpg);
+    background-size: cover;
+    background-position: top center;
+    background-attachment: fixed;
+}

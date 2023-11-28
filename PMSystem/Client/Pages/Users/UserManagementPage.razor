@@ -1,0 +1,228 @@
+﻿@page "/usermanagementpage"
+@using PMSystem.Shared
+@using static PMSystem.Client.Pages.Users.EditUserPage
+@inject IDialogService DialogService
+@inject IMapper Mapper
+@inject IUserService UserService
+@inject NavigationManager NavigationManager
+@inject ISnackbar SnackBar
+
+<style>
+    .selected {
+        background-color: #1E88E5 !important;
+    }
+
+        .selected > td {
+            color: white !important;
+        }
+
+            .selected > td .mud-input {
+                color: white !important;
+            }
+</style>
+<PageTitle>用户信息管理</PageTitle>
+
+@if (UserModels is null || UserModels.Count <= 0)
+{
+    <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Center">
+        当前用户信息为空！
+    </MudAlert>
+}
+else
+{
+<MudCard>
+    <MudCardHeader>
+        <MudText Typo="Typo.h6">用户信息表</MudText>
+        <MudButtonGroup Color="Color.Info" Variant="Variant.Filled" class="ml-4">
+            <MudButton Target="_blank" Variant="Variant.Filled" EndIcon="@Icons.Filled.GroupAdd" Color="Color.Info" Disabled=@disabled OnClick="New">添加用户</MudButton>
+            <MudButton Variant="Variant.Filled" OnClick="ChangePwd" EndIcon="@Icons.Material.Filled.Security">修改密码</MudButton>
+        </MudButtonGroup>
+
+        <MudSpacer />
+        <MudTextField T="string" Label="搜索用户姓名" Variant="Variant.Outlined" Clearable="true"
+                      AdornmentIcon="@Icons.Filled.Search" Adornment="Adornment.End"
+                      @bind-Text="searchText"/>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudTable @ref="_table" T="UserModel" Items="@UserModels" Hover="true"
+          SortLabel="Sort By" Filter="FilterUser" Breakpoint="Breakpoint.Sm" RowsPerPage="10" LoadingProgressColor="Color.Info"
+          Virtualize="true" RowClassFunc="@SelectedRowClassFunc" OnRowClick="RowClickEvent">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<UserModel, object>(x=>x.id)">序号</MudTableSortLabel></MudTh>
+                <MudTh>登录账号</MudTh>
+                <MudTh>姓名</MudTh>
+                <MudTh>性别</MudTh>
+                <MudTh>联系方式</MudTh>
+                <MudTh>岗位权限</MudTh>
+                <MudTh>操作</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="id">@context.id</MudTd>
+                <MudTd DataLabel="user_code">@context.user_code</MudTd>
+                <MudTd DataLabel="user_name">@context.user_name</MudTd>
+                <MudTd DataLabel="sex">@context.sex</MudTd>
+                <MudTd DataLabel="phone">@context.phone</MudTd>
+                <MudTd DataLabel="Roles">
+                    @foreach(var item in context.Roles)
+                    {
+                        <MudText>@item </MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Operate">
+                    <MudStack AlignItems="AlignItems.Center" Row="true">
+                        <MudButton Variant="Variant.Filled" OnClick="@(()=>{Edit(context);})" Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="@Size.Medium">编辑</MudButton>
+                        <MudButton Variant="Variant.Filled" OnClick="@(()=>{Delete(context);})" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="@Size.Medium">删除</MudButton>
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <div class="d-flex flex-column align-center">
+                    <MudPagination SelectedChanged="PageChanged" Count="@((_table.GetFilteredItemsCount() + _table.RowsPerPage - 1) / _table.RowsPerPage)" Class="pa-4" />
+                </div>
+            </PagerContent>
+        </MudTable>
+    </MudCardContent>
+</MudCard>
+}
+
+
+@code {
+    bool disabled = false;
+    private MudTable<UserModel> _table;
+    private bool enabled = true;
+    private bool hidePageNumber;
+    private bool hidePagination;
+    private bool hideRowsPerPage;
+    private string infoFormat = "{first_item}-{last_item} of {all_items}";
+    public string searchText { get; set; }
+    private bool isLoading = true;
+    private bool isEmpty = false;
+    private List<string> clickedEvents = new();
+    private int selectedRowNumber = -1;
+
+    private List<UserModel> UserModels { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        UserModels = new List<UserModel>();
+        await GetUsers();
+        StateHasChanged();
+    }
+
+    async Task GetUsers()
+    {
+        var result = await UserService.GetUsers();
+        if (result.Success)
+        {
+            UserModels = result.Data;
+        }
+    }
+
+    private async Task Edit(UserModel userModel)
+    {
+        UserModel model = Mapper.Map<UserModel>(userModel);
+        var parameters = new DialogParameters { ["UserModel"] = model };
+        var dialog = DialogService.Show<EditUserPage>("编辑用户信息", parameters);
+        var result = await dialog.Result;
+        if (!result.Cancelled)
+        {
+            var response = await UserService.UpdateUser(Mapper.Map<UserModel, UpdateUserModel>(result.Data as UserModel));
+            if (response.Success)
+            {
+                userModel = result.Data as UserModel;
+                SnackBar.Add(response.Message, Severity.Success);
+            }
+            else
+            {
+                SnackBar.Add(response.Message, Severity.Info);
+            }
+            await GetUsers();
+            StateHasChanged();
+        }
+    }
+
+    private async Task New()
+    {
+        var dialog = DialogService.Show<UserAddPage>("添加用户");
+        var result = await dialog.Result;
+        if (!result.Cancelled)
+        {
+            var apiResult = await UserService.AddUser(Mapper.Map<UserModel,AddUserModel>(result.Data as UserModel));
+            if (apiResult.Success)
+            {
+                SnackBar.Add(apiResult.Message, Severity.Success);
+            }
+            else
+            {
+                SnackBar.Add(apiResult.Message, Severity.Error);
+            }
+            await GetUsers();
+        }
+        StateHasChanged();
+    }
+
+    public async Task Delete(UserModel e)
+    {
+        var result = await DialogService.Show<MakeSureDialog>("确认操作").Result;
+        if (!result.Cancelled)
+        {
+            var response = await UserService.DeleteUser(e.id);
+            if (response.Success)
+            {
+                SnackBar.Add(response.Message, Severity.Success);
+            }
+            else
+            {
+                SnackBar.Add(response.Data, Severity.Error);
+            }
+            await GetUsers();
+        }
+        StateHasChanged();
+    }
+
+    private void ChangePwd()
+    {
+        NavigationManager.NavigateTo("/edituserspwdpage");
+    }
+
+    bool FilterUser(UserModel userModel)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+            return true;
+        if (userModel.id.ToString().Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (userModel.user_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    private void PageChanged(int i)
+    {
+        _table.NavigateTo(i - 1);
+    }
+
+    private void RowClickEvent(TableRowClickEventArgs<UserModel> tableRowClickEventArgs)
+    {
+        clickedEvents.Add("Row has been clicked");
+    }
+
+    private string SelectedRowClassFunc(UserModel userModel, int rowNumber)
+    {
+        if (selectedRowNumber == rowNumber)
+        {
+            selectedRowNumber = -1;
+            clickedEvents.Add("Selected Row: None");
+            return string.Empty;
+        }
+        else if (_table.SelectedItem != null && _table.SelectedItem.Equals(userModel))
+        {
+            selectedRowNumber = rowNumber;
+            clickedEvents.Add($"Selected Row: {rowNumber}");
+            return "selected";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+}

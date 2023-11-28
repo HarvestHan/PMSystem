@@ -1,0 +1,120 @@
+﻿@page "/edituserspwdpage"
+@using PMSystem.Shared
+@using System.ComponentModel.DataAnnotations
+
+@inject IAuthService AuthService
+@inject IUserService UserService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<MudPaper Class="d-flex justify-center flex-grow-1 gap-4 mud-width-full" Elevation="0">
+    <EditForm Model="@ChangeUsersPwdModel" OnValidSubmit="OnValidSubmit">
+        <DataAnnotationsValidator/>
+        <MudPaper Class="d-flex align-center flex-grow-1 gap-4" Elevation="0" Height="50px" Square="true"/>
+        <MudGrid  Class="align-center" Style="max-width: 800px;">
+        <MudItem xs="12" sm="12">
+        <MudCard>
+            <MudCardContent>
+                <MudGrid>
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Height="20px" Square="true" Class="align-self-center py-4 flex-1" Elevation="0">
+                        </MudPaper>
+                        <MudPaper Height="78px" Square="true" Class="align-self-center py-4 flex-1" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center">请输入用户账号：</MudText>
+                        </MudPaper>
+                        <MudPaper Height="70px" Square="true" Class="align-self-center py-4 flex-1" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center">请输入新密码：</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="8">
+                        <MudTextField T="string" Label="请输入用户账号" HelperText="请输入正确的用户账号" Class="mt-3" @bind-Value="@ChangeUsersPwdModel.Code"/>
+                        <MudTextField T="string" Label="请输入新密码" HelperText="请输入6位及以上的密码" Class="mt-3" @bind-Value="@ChangeUsersPwdModel.Password"
+                               InputType="@PasswordInput" For="@(() => ChangeUsersPwdModel.Password)"  @ref="pwField"
+                               Adornment="Adornment.End" AdornmentIcon="@PasswordInputIcon" OnAdornmentClick="ButtonTestclick"/>
+                    </MudItem>
+                </MudGrid>
+            </MudCardContent>
+            <MudCardActions>
+                <MudPaper Class="d-flex align-center flex-grow-1 gap-4" Elevation="0" Height="30px" Square="true">
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Success" Class="ml-auto" OnClick="Edit">确认</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Error" Class="ml-auto" OnClick="Cancel">取消</MudButton>
+                </MudPaper>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12">
+        <MudText Typo="Typo.body2" Align="Align.Center">
+            成功修改密码后应能看到相应提示。
+        </MudText>
+    </MudItem>
+</MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    bool success;
+    bool isShow;
+    bool IsSame = false;
+    MudTextField<string> pwField;
+
+    InputType PasswordInput = InputType.Password;
+    string PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
+
+    [Parameter]
+    public ChangeUsersPwdModel ChangeUsersPwdModel { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ChangeUsersPwdModel is null)
+            ChangeUsersPwdModel = new ChangeUsersPwdModel();
+    }
+
+    private void OnValidSubmit(EditContext context)
+    {
+        success = true;
+        StateHasChanged();
+    }
+
+    void ButtonTestclick()
+    {
+        @if (isShow)
+        {
+            isShow = false;
+            PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
+            PasswordInput = InputType.Password;
+        }
+        else
+        {
+            isShow = true;
+            PasswordInputIcon = Icons.Material.Filled.Visibility;
+            PasswordInput = InputType.Text;
+        }
+    }
+
+    //"确定"按钮单击事件
+    void Edit()
+    {
+        //将新输入的密码更新至数据库
+        ChangeUsersPwd(ChangeUsersPwdModel, pwField.Value);
+    }
+
+    void Cancel()
+    {
+        NavigationManager.NavigateTo("/usermanagementpage");
+    }
+
+    async Task ChangeUsersPwd(ChangeUsersPwdModel ChangeUsersPwdModel, string newPassword)
+    {
+        var result = await UserService.ChangeUsersPwd(ChangeUsersPwdModel, newPassword);
+        if (result.Success) 
+        {
+            Snackbar.Add("成功修改密码！", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("修改密码失败！", Severity.Error);
+        }
+    }
+}
+
+

@@ -1,0 +1,161 @@
+﻿@page "/userinfopage"
+@using PMSystem.Shared
+
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<MudBreadcrumbs Items="_items">
+    <ItemTemplate Context="item">
+        <MudLink Href="@item.Href">@item.Text.ToUpper()</MudLink>
+    </ItemTemplate>
+</MudBreadcrumbs>
+
+<MudPaper Class="gap-y-5 d-flex flex-wrap" Elevation="0">
+    <MudPaper Class="d-flex justify-center flex-grow-1 gap-4 mud-width-full" Elevation="0">
+        <MudCard Width="85%">
+            <MudCardMedia Image="../resources/userinfo1.jpg" Height="80" />
+            <MudCardHeader>
+                <CardHeaderAvatar>
+                    <MudAvatar Style="height:90px; width:90px; font-size:2rem;" >@User.user_name[0]</MudAvatar>
+                </CardHeaderAvatar>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h4"></MudText>
+                    <MudText Typo="Typo.body1">@User.user_name</MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudDivider/>
+            <MudCardContent>
+                <MudGrid Class="align-center" Style="max-width: 800px;" Elevation="0">
+                    <MudItem xs="12">
+                        <MudPaper Square="true" Elevation="0" Height="40px">
+                            <MudChip Width="20px" Size="Size.Large">账户信息</MudChip>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudPaper Square="true" Elevation="0" Height="20px">
+                            <MudDivider DividerType="DividerType.Inset" />
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Height="65px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center">账号：</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Height="62px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center">@User.user_code</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Height="65px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center"></MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Height="62px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center"></MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Height="65px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center">性别：</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Height="62px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center">@User.sex</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Height="65px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center"></MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Height="62px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center"></MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Height="65px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center">联系方式：</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Height="62px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center">@User.phone</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Height="65px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center"></MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Height="62px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center"></MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Height="65px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center">密码：</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Height="62px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center">******</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="1">
+                        <MudPaper Height="65px" Square="true" Elevation="0">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Edit" OnClick="EditPwd" />
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="5">
+                        <MudPaper Height="62px" Square="true" Elevation="0">
+                            <MudText Typo="Typo.body1" Align="Align.Center"></MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudPaper Square="true" Elevation="0" Height="40px">
+                            <MudChip Width="20px" Size="Size.Large">个人信息</MudChip>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudPaper Square="true" Elevation="0" Height="20px">
+                            <MudDivider DividerType="DividerType.Inset" />
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+                <MudChip Icon="@Icons.Material.Filled.Person" Color="Color.Info">汽车零件仓储管理企业</MudChip>
+                @foreach (var role in User.Roles)
+                {
+                    <MudChip Icon="@Icons.Material.Filled.Person" Color="Color.Info">@role.RealName</MudChip>
+                }
+            </MudCardContent>
+
+        </MudCard>
+    </MudPaper>
+</MudPaper>
+
+
+@code {
+
+    [CascadingParameter]
+    public UserModel User { get; set; }
+    //Breadcrumbs-user's location
+    private List<BreadcrumbItem> _items = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem("主页", href: ""),
+        new BreadcrumbItem("个人信息", href: "userinfopage"),
+    };
+
+    //修改密码跳转事件
+    void EditPwd()
+    {
+        NavigationManager.NavigateTo("/editpasswordpage");
+    }
+}

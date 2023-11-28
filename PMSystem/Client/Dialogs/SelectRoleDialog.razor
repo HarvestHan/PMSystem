@@ -1,0 +1,47 @@
+﻿@inject IRoleService RoleService
+
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex flex-column py-1">
+            <MudSelect T="RoleModel" @bind-Value="Role" AnchorOrigin="Origin.BottomCenter"
+                       Variant="Variant.Outlined" Label="选择权限">
+                @foreach (var item in Roles)
+                {
+                    <MudSelectItem T="RoleModel" Value="item" />
+                }
+            </MudSelect>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="Ok">确定</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Close">关闭</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    public RoleModel Role { get; set; }
+    public List<RoleModel> Roles { get; set; }
+
+    void Close() => MudDialog.Close(DialogResult.Cancel());
+
+    protected override async Task OnInitializedAsync()
+    {
+        Role = new RoleModel();
+        await GetAllRoles();
+    }
+
+    async Task GetAllRoles()
+    {
+        var result = await RoleService.GetRoles();
+        if (result.Success)
+        {
+            Roles = result.Data;
+        }
+    }
+    void Ok()
+    {
+        if (Role is not null)
+            MudDialog.Close(DialogResult.Ok(Role));
+    }
+}

@@ -1,0 +1,310 @@
+﻿@page "/outboundlistmanagement"
+@using PMSystem.Shared
+@inject IMapper Mapper
+@inject IOutboundListService OutboundListService
+@inject IStorageInfoService StorageInfoService
+@inject IUserService UserService
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject ISnackbar SnackBar
+
+<style>
+    .selected {
+        background-color: #1E88E5 !important;
+    }
+
+        .selected > td {
+            color: white !important;
+        }
+
+            .selected > td .mud-input {
+                color: white !important;
+            }
+</style>
+<PageTitle>出库管理</PageTitle>
+
+<MudCard>
+    <MudCardHeader>
+        <MudGrid Class="align-center">
+            <MudItem lg="6" sm="12" Class="align-center">
+                <MudStack Row="true" Class="align-center">
+                    <MudText Typo="Typo.h6">出库管理</MudText>
+                    @if (User.Roles.Where(r => r.id == 4).ToList().Count != 0)
+                    {
+                        <MudButton Target="_blank" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.PlaylistRemove" Color="Color.Info" OnClick="New">新增出库</MudButton>
+                    }
+                </MudStack>
+
+            </MudItem>
+            <MudItem lg="6" sm="12" Class="align-center">
+               <MudTextField T="string" Label="请输入您想搜索的内容" Variant="Variant.Outlined" Clearable="true" 
+                            AdornmentIcon="@Icons.Filled.Search" Adornment="Adornment.End"
+                            @bind-Text="searchText"/>
+            </MudItem>
+        </MudGrid>       
+    </MudCardHeader>
+
+
+    <MudCardContent>
+        @if (OutboundListModels is null || OutboundListModels.Count <= 0)
+        {
+            <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Center">
+                当前出库信息为空！
+            </MudAlert>
+        }
+        else
+        {
+        <MudTable @ref="_table" T="OutboundListModel" Items="@OutboundListModels" Hover="true"
+          SortLabel="Sort By" Filter="FilterOutboundList" Breakpoint="Breakpoint.Sm" RowsPerPage="10" LoadingProgressColor="Color.Info"
+          Virtualize="true" RowClassFunc="@SelectedRowClassFunc" OnRowClick="RowClickEvent">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<OutboundListModel, object>(x=>x.id)">序号</MudTableSortLabel></MudTh>
+                <MudTh>出库单编号</MudTh>
+                <MudTh>出库日期</MudTh>
+                <MudTh>仓库名称</MudTh>
+                <MudTh>零件名称</MudTh>
+                <MudTh>出库数量</MudTh>
+                <MudTh>处理人</MudTh>
+                <MudTh>备注</MudTh>
+                <MudTh>审核意见</MudTh>
+                <MudTh>出库状态</MudTh>
+                <MudTh>操作</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="id">@context.id</MudTd>
+                <MudTd DataLabel="outbound_code">@context.outbound_code</MudTd>
+                <MudTd DataLabel="outbound_date">@context.outbound_date</MudTd>
+                <MudTd DataLabel="warehouse_">@context.warehouse_.warehouse_name</MudTd>
+                <MudTd DataLabel="parts_">@context.parts_.parts_name</MudTd>
+                <MudTd DataLabel="count">@context.count</MudTd>
+                <MudTd DataLabel="handle_">@context.handle_.user_name</MudTd>
+                <MudTd DataLabel="remark">@context.remark</MudTd>
+                @if(context.outbound_state == PMSystem.Shared.Enums.OutboundState.待审核)
+                {
+                    <MudTd DataLabel="suggestion">审核中</MudTd>
+                }
+                else
+                {
+                    <MudTd DataLabel="suggestion">@context.suggestion</MudTd>
+                }
+                @if(context.outbound_state == PMSystem.Shared.Enums.OutboundState.待审核)
+                {
+                    <MudTd DataLabel="outbound_state"><MudChip Text="blue" Variant="Variant.Filled" Color="Color.Info">待审核</MudChip></MudTd>
+                }
+                else if(context.outbound_state == PMSystem.Shared.Enums.OutboundState.待修改)
+                {
+                    <MudTd DataLabel="outbound_state"><MudChip Text="red" Variant="Variant.Filled" Color="Color.Error">待修改</MudChip></MudTd>
+                }
+                else if(context.outbound_state == PMSystem.Shared.Enums.OutboundState.待出库)
+                {
+                    <MudTd DataLabel="outbound_state"><MudChip Text="orange" Variant="Variant.Filled" Color="Color.Warning">待出库</MudChip></MudTd>
+                }
+                else
+                {
+                    <MudTd DataLabel="outbound_state"><MudChip Text="green" Variant="Variant.Filled" Color="Color.Success">已出库</MudChip></MudTd>
+                }
+                <MudTd DataLabel="Operate">
+                    <MudStack AlignItems="AlignItems.Center" Row="true">
+                        @if ((User.Roles.Where(r => r.id == 2).ToList().Count != 0) && (context.outbound_state == PMSystem.Shared.Enums.OutboundState.待审核))
+                        {
+                            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Edit(context);})" Icon="@Icons.Material.Filled.Edit" Color="Color.Success" Size="@Size.Medium">审核</MudButton>
+                        }
+                        @if ((User.Roles.Where(r => r.id == 4).ToList().Count != 0) && (context.outbound_state == PMSystem.Shared.Enums.OutboundState.待修改))
+                        {
+                            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Edit(context);})" Icon="@Icons.Material.Filled.Edit" Color="Color.Error" Size="@Size.Medium">修改</MudButton>
+                        }
+                            @if (User.Roles.Where(r => r.id == 1).ToList().Count != 0)
+                        {
+                            <MudButton Variant="Variant.Filled" OnClick="@(()=>{Delete(context);})" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="@Size.Medium">删除</MudButton>
+                        }
+                            @if ((User.Roles.Where(r => r.id == 5).ToList().Count != 0) && (context.outbound_state == PMSystem.Shared.Enums.OutboundState.待出库))
+                        {
+                            <MudButton Variant="Variant.Filled" OnClick="@(()=>{OB(context);})" Icon="@Icons.Material.Filled.Delete" Color="Color.Secondary" Size="@Size.Medium">出库</MudButton>
+                        }
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+
+            <PagerContent>
+                <div class="d-flex flex-column align-center">
+                    <MudPagination SelectedChanged="PageChanged" Count="@((_table.GetFilteredItemsCount() + _table.RowsPerPage - 1) / _table.RowsPerPage)" Class="pa-4" />
+                </div>
+            </PagerContent>
+        </MudTable>
+        }
+
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private bool isEmpty = false;
+    private bool isLoading = true;
+    private List<string> clickedEvents = new();
+    private int selectedRowNumber = -1;
+    private string infoFormat = "{first_item}-{last_item} of {all_items}";
+    public string searchText { get; set; }
+    private MudTable<OutboundListModel> _table;
+    [CascadingParameter]
+    public UserModel User { get; set; }
+
+    private List<OutboundListModel> OutboundListModels { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        OutboundListModels = new List<OutboundListModel>();
+        await GetOutboundLists();
+    }
+
+    async Task GetOutboundLists()
+    {
+        var result = await OutboundListService.GetOutboundLists();
+        if (result.Success)
+        {
+            if (User.Roles.Where(r => r.id == 1).ToList().Count != 0)
+            {
+                OutboundListModels = result.Data;
+            }
+            else if (User.Roles.Where(r => r.id == 2).ToList().Count != 0)
+            {
+                OutboundListModels = result.Data.Where(o => o.outbound_state == PMSystem.Shared.Enums.OutboundState.待审核).ToList();
+            }
+            else if (User.Roles.Where(r => r.id == 4).ToList().Count != 0)
+            {
+                OutboundListModels = result.Data.Where(o => o.outbound_state == PMSystem.Shared.Enums.OutboundState.待修改 || o.outbound_state == PMSystem.Shared.Enums.OutboundState.待审核).ToList();
+            }
+            else if (User.Roles.Where(r => r.id == 5).ToList().Count != 0)
+            {
+                OutboundListModels = result.Data.Where(o => o.outbound_state == PMSystem.Shared.Enums.OutboundState.待出库).ToList();
+            }
+        }
+    }
+
+    private async Task Edit(OutboundListModel outboundListModel)
+    {
+        OutboundListModel model = Mapper.Map<OutboundListModel>(outboundListModel);
+        var parameters = new DialogParameters { ["OutboundListModel"] = model };
+        var dialog = DialogService.Show<OutboundListEditPage>("编辑出库信息", parameters);
+        var result = await dialog.Result;
+        if (!result.Cancelled)
+        {
+            var response = await OutboundListService.UpdateOutboundList(Mapper.Map<OutboundListModel, UpdateOutboundListModel>(result.Data as OutboundListModel));
+            if (response.Success)
+                outboundListModel = result.Data as OutboundListModel;
+            SnackBar.Add(response.Message, response.Success ? Severity.Success : Severity.Error);
+            await GetOutboundLists();
+        }
+        if(outboundListModel.outbound_state == PMSystem.Shared.Enums.OutboundState.待出库)
+        {
+            Outbound(outboundListModel);
+        }
+        StateHasChanged();
+    }
+
+    private async Task New()
+    {
+        var dialog = DialogService.Show<OutboundListAddPage>("添加出库信息");
+        var result = await dialog.Result;
+        if (!result.Cancelled)
+        {
+            OutboundListModel model = result.Data as OutboundListModel;
+            var response = await StorageInfoService.GetStorageInfo(model.warehouse_.id, model.parts_.id);
+            int storageNum = response.Data.count;
+            if(model.count <= storageNum)
+            {
+                var apiResult = await OutboundListService.AddOutboundList(Mapper.Map<OutboundListModel, AddOutboundListModel>(result.Data as OutboundListModel));
+                if (apiResult.Success)
+                {
+                    SnackBar.Add(apiResult.Message, Severity.Success);
+                }
+                else
+                {
+                    SnackBar.Add(apiResult.Message, Severity.Error);
+                }
+            }
+            else
+            {
+                SnackBar.Add("库存数量不足", Severity.Error);
+            }
+            await GetOutboundLists();
+        }
+        StateHasChanged();
+    }
+
+    public async void Delete(OutboundListModel e)
+    {
+        var result = await DialogService.Show<MakeSureDialog>("确认操作").Result;
+        if (!result.Cancelled)
+        {
+            var response = await OutboundListService.DeleteOutboundList(e.id);
+            SnackBar.Add(response.Message, response.Success ? Severity.Success : Severity.Error);
+        }
+        await GetOutboundLists();
+        StateHasChanged();
+    }
+
+    public async void Outbound(OutboundListModel outboundListModel)
+    {
+        var response = await OutboundListService.UpdateQuantity(outboundListModel);
+        SnackBar.Add(response.Message, response.Success ? Severity.Success : Severity.Error);
+        await GetOutboundLists();
+        StateHasChanged();
+    }
+
+    public async void OB(OutboundListModel outboundListModel)
+    {
+        outboundListModel.outbound_state = PMSystem.Shared.Enums.OutboundState.已出库;
+        var response = await OutboundListService.UpdateOutboundList(Mapper.Map<OutboundListModel, UpdateOutboundListModel>(outboundListModel));
+        SnackBar.Add("出库成功", response.Success ? Severity.Success : Severity.Error);
+        await GetOutboundLists();
+        StateHasChanged();
+    }
+
+    bool FilterOutboundList(OutboundListModel outboundListModel)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+            return true;
+        if (outboundListModel.outbound_code.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (outboundListModel.warehouse_.warehouse_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (outboundListModel.parts_.parts_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (outboundListModel.count.ToString().Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (outboundListModel.handle_.user_name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (outboundListModel.remark.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    private void PageChanged(int i)
+    {
+        _table.NavigateTo(i - 1);
+    }
+
+    private void RowClickEvent(TableRowClickEventArgs<OutboundListModel> tableRowClickEventArgs)
+    {
+        clickedEvents.Add("Row has been clicked");
+    }
+
+    private string SelectedRowClassFunc(OutboundListModel outboundListModel, int rowNumber)
+    {
+        if (selectedRowNumber == rowNumber)
+        {
+            selectedRowNumber = -1;
+            clickedEvents.Add("Selected Row: None");
+            return string.Empty;
+        }
+        else if (_table.SelectedItem != null && _table.SelectedItem.Equals(outboundListModel))
+        {
+            selectedRowNumber = rowNumber;
+            clickedEvents.Add($"Selected Row: {rowNumber}");
+            return "selected";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+}

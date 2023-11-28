@@ -1,0 +1,21 @@
+﻿@inject ILogger<Log> Logger
+
+<CascadingValue Value="this">
+   
+</CascadingValue>
+
+@code {
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    public void ProcError(string message)
+    {
+        Logger.LogError(message);
+    }
+
+    public void ProcWarning(string message)
+    {
+        Logger.LogWarning(message);
+    }
+
+}
